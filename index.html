@@ -353,44 +353,29 @@ function updateVehicles() {
     if (inside) nLive++;
   }
 }
-const CAR = [{ len: 7, w: 2.4, cars: 1, gap: 0 }, { len: 15.8, w: 2.5, cars: 3, gap: 1 }, { len: 22.2, w: 2.7, cars: 4, gap: 1 }];   // screen px at zoom factor 1
 function drawDots() {
   if (!C) return;
-  const { vs, pos, live, alpha, hd, NV } = C, s = view.s, zf = Math.min(2.4, Math.max(0.85, Math.pow(s, 0.45)));
+  const { vs, pos, live, alpha, NV } = C, s = view.s, zf = Math.min(2.4, Math.max(0.85, Math.pow(s, 0.45)));
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   if (selected >= 0 && live[selected]) {
     ctx.save(); ctx.setTransform(dpr*s, 0, 0, dpr*s, dpr*view.x, dpr*view.y);
     ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 2.4 / s; ctx.lineJoin = "round"; ctx.stroke(vs[selected].shape.path); ctx.restore();
   }
-  ctx.lineCap = "round"; ctx.lineJoin = "round";
-  for (let cls = 0; cls < 3; cls++) {                           // buses first, rail on top
-    const P = CAR[cls], w = P.w * zf, len = P.len * zf, gap = P.gap * zf, half = Math.max(0, (len - w) / 2);
-    const carLen = (len - (P.cars - 1) * gap) / P.cars, dash = P.cars > 1 ? [Math.max(0.3, carLen - w), gap + w] : [];
-    const faded = []; let any = false;
-    ctx.beginPath();
-    for (let k = 0; k < NV; k++) {                              // one path for every fully visible vehicle of this class
-      if (!live[k] || vs[k].shape.cls !== cls) continue;
+  for (const pass of [0, 1]) {                                  // buses first, rail on top
+    for (let k = 0; k < NV; k++) {
+      if (!live[k]) continue;
+      const big = vs[k].shape.cls > 0; if ((pass === 1) !== big) continue;
       const x = pos[2*k] * s + view.x, y = pos[2*k+1] * s + view.y;
-      if (x < -20 || y < -20 || x > vw + 20 || y > vh + 20) continue;
-      if (alpha[k] < 1) { faded.push(k); continue; }
-      const hx = hd[2*k] * half, hy = hd[2*k+1] * half;
-      ctx.moveTo(x - hx, y - hy); ctx.lineTo(x + hx, y + hy); any = true;
+      if (x < -10 || y < -10 || x > vw + 10 || y > vh + 10) continue;
+      const r = (big ? 2.6 : 1.7) * zf;
+      ctx.globalAlpha = alpha[k];
+      if (big) { ctx.fillStyle = "rgba(255,255,255,.16)"; ctx.beginPath(); ctx.arc(x, y, r * 2, 0, 6.2832); ctx.fill(); }
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
     }
-    if (any) {
-      ctx.setLineDash([]);
-      if (cls > 0) { ctx.lineWidth = w + 3.4; ctx.strokeStyle = "rgba(255,255,255,.15)"; ctx.stroke(); }   // soft glow under trains
-      ctx.setLineDash(dash); ctx.lineWidth = w; ctx.strokeStyle = "#fff"; ctx.stroke();
-    }
-    ctx.setLineDash(dash); ctx.lineWidth = w; ctx.strokeStyle = "#fff";
-    for (const k of faded) {                                   // vehicles fading in/out
-      const x = pos[2*k] * s + view.x, y = pos[2*k+1] * s + view.y, hx = hd[2*k] * half, hy = hd[2*k+1] * half;
-      ctx.globalAlpha = alpha[k]; ctx.beginPath(); ctx.moveTo(x - hx, y - hy); ctx.lineTo(x + hx, y + hy); ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
   }
-  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
   for (const k of [hover, selected]) if (k >= 0 && live[k]) {
-    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(pos[2*k] * s + view.x, pos[2*k+1] * s + view.y, 9, 0, 6.2832); ctx.stroke(); }
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(pos[2*k] * s + view.x, pos[2*k+1] * s + view.y, 8, 0, 6.2832); ctx.stroke(); }
 }
 
 // ---------- UI ----------
