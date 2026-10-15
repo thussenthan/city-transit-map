@@ -601,8 +601,10 @@ def draw_lines():
         key = np.floor(P[:, 0]).astype(np.int64) * 100000 + np.floor(P[:, 1]).astype(np.int64)
         _, first = np.unique(key, return_index=True)
         keep = np.zeros(len(P), bool); keep[first] = True
-        keep[1:] |= keep[:-1] & False                                                   # (runs are cut below)
-        run = np.flatnonzero(np.diff(np.r_[0, keep.astype(np.int8), 0]) == 1), np.flatnonzero(np.diff(np.r_[0, keep.astype(np.int8), 0]) == -1)
+        newshape = np.r_[True, O[1:] != O[:-1]]                                          # runs never continue across two shapes
+        starts = keep & (newshape | ~np.r_[False, keep[:-1]])
+        ends = keep & (np.r_[newshape[1:], True] | ~np.r_[keep[1:], False])
+        run = np.flatnonzero(starts), np.flatnonzero(ends) + 1
         for a_, b_ in zip(*run):
             lo = max(a_ - 1, 0)
             if O[lo] != O[a_]: lo = a_                                                  # do not reach back into another shape
