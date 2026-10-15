@@ -1,0 +1,99 @@
+[
+ {
+  "id": "philadelphia",
+  "name": "Philadelphia",
+  "sub": "SEPTA",
+  "credit": "SEPTA GTFS",
+  "date": "20261020",
+  "vehicles": 15414,
+  "bytes": 981053
+ },
+ {
+  "id": "new-york",
+  "name": "New York",
+  "sub": "MTA subway & buses",
+  "credit": "MTA GTFS",
+  "date": "20261020",
+  "vehicles": 63656,
+  "bytes": 2070730
+ },
+ {
+  "id": "boston",
+  "name": "Boston",
+  "sub": "MBTA",
+  "credit": "MBTA GTFS",
+  "date": "20261020",
+  "vehicles": 16334,
+  "bytes": 1096953
+ },
+ {
+  "id": "chicago",
+  "name": "Chicago",
+  "sub": "CTA & Metra",
+  "credit": "CTA, Metra GTFS",
+  "date": "20261020",
+  "vehicles": 21124,
+  "bytes": 1379301
+ },
+ {
+  "id": "san-francisco",
+  "name": "San Francisco",
+  "sub": "Muni & BART",
+  "credit": "SFMTA, BART GTFS",
+  "date": "20260825",
+  "dates": {
+   "Muni": "20260825",
+   "BART": "20261020"
+  },
+  "vehicles": 10497,
+  "bytes": 800843
+ },
+ {
+  "id": "paris",
+  "name": "Paris",
+  "sub": "Île-de-France Mobilités",
+  "credit": "IDFM GTFS",
+  "date": "20261020",
+  "dates": {
+   "idfm": "20261020"
+  },
+  "vehicles": 123541,
+  "bytes": 3532209
+ },
+ {
+  "id": "berlin",
+  "name": "Berlin",
+  "sub": "VBB",
+  "credit": "VBB GTFS",
+  "date": "20261020",
+  "dates": {
+   "vbb": "20261020"
+  },
+  "vehicles": 50124,
+  "bytes": 1373304
+ },
+ {
+  "id": "toronto",
+  "name": "Toronto",
+  "sub": "TTC",
+  "credit": "TTC GTFS",
+  "date": "20261020",
+  "dates": {
+   "ttc": "20261020"
+  },
+  "vehicles": 40478,
+  "bytes": 1218003
+ },
+ {
+  "id": "hong-kong",
+  "name": "Hong Kong",
+  "sub": "KMB, Citybus, minibuses & more",
+  "credit": "Transport Department GTFS",
+  "date": "20261020",
+  "dates": {
+   "td": "20261020"
+  },
+  "vehicles": 144301,
+  "bytes": 1404371
+ }
+]

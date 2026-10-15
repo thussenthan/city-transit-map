@@ -1,0 +1,253 @@
+{
+ "philadelphia": {
+  "name": "Philadelphia",
+  "sub": "SEPTA",
+  "center": [
+   -75.195,
+   39.976
+  ],
+  "home_km": [
+   21,
+   23
+  ],
+  "ext_km": [
+   24,
+   26
+  ],
+  "credit": "SEPTA GTFS",
+  "feeds": [
+   {
+    "label": "bus",
+    "path": "philadelphia/google_bus.zip"
+   },
+   {
+    "label": "rail",
+    "path": "philadelphia/google_rail.zip"
+   }
+  ]
+ },
+ "new-york": {
+  "name": "New York",
+  "sub": "MTA subway & buses",
+  "center": [
+   -73.96,
+   40.72
+  ],
+  "home_km": [
+   26,
+   34
+  ],
+  "ext_km": [
+   30,
+   34
+  ],
+  "coast": true,
+  "credit": "MTA GTFS",
+  "feeds": [
+   {
+    "label": "subway",
+    "path": "nyc/subway.zip"
+   },
+   {
+    "label": "m",
+    "path": "nyc/m.zip"
+   },
+   {
+    "label": "b",
+    "path": "nyc/b.zip"
+   },
+   {
+    "label": "bx",
+    "path": "nyc/bx.zip"
+   },
+   {
+    "label": "q",
+    "path": "nyc/q.zip"
+   },
+   {
+    "label": "si",
+    "path": "nyc/si.zip"
+   },
+   {
+    "label": "busco",
+    "path": "nyc/busco.zip"
+   }
+  ]
+ },
+ "boston": {
+  "name": "Boston",
+  "sub": "MBTA",
+  "center": [
+   -71.08,
+   42.34
+  ],
+  "home_km": [
+   22,
+   24
+  ],
+  "ext_km": [
+   26,
+   28
+  ],
+  "coast": true,
+  "credit": "MBTA GTFS",
+  "feeds": [
+   {
+    "label": "mbta",
+    "path": "boston/mbta.zip"
+   }
+  ]
+ },
+ "chicago": {
+  "name": "Chicago",
+  "sub": "CTA & Metra",
+  "center": [
+   -87.72,
+   41.86
+  ],
+  "home_km": [
+   26,
+   32
+  ],
+  "ext_km": [
+   32,
+   36
+  ],
+  "coast": true,
+  "credit": "CTA, Metra GTFS",
+  "feeds": [
+   {
+    "label": "cta",
+    "path": "chicago/cta.zip"
+   },
+   {
+    "label": "metra",
+    "path": "chicago/metra.zip"
+   }
+  ]
+ },
+ "san-francisco": {
+  "name": "San Francisco",
+  "sub": "Muni & BART",
+  "center": [
+   -122.33,
+   37.79
+  ],
+  "home_km": [
+   30,
+   27
+  ],
+  "ext_km": [
+   36,
+   34
+  ],
+  "coast": true,
+  "credit": "SFMTA, BART GTFS",
+  "feeds": [
+   {
+    "label": "muni",
+    "name": "Muni",
+    "path": "sf/muni.zip"
+   },
+   {
+    "label": "bart",
+    "name": "BART",
+    "path": "sf/bart.zip"
+   }
+  ]
+ },
+ "paris": {
+  "name": "Paris",
+  "sub": "Île-de-France Mobilités",
+  "center": [
+   2.35,
+   48.86
+  ],
+  "home_km": [
+   30,
+   26
+  ],
+  "ext_km": [
+   30,
+   28
+  ],
+  "credit": "IDFM GTFS",
+  "feeds": [
+   {
+    "label": "idfm",
+    "path": "paris/idfm.zip"
+   }
+  ]
+ },
+ "berlin": {
+  "name": "Berlin",
+  "sub": "VBB",
+  "center": [
+   13.4,
+   52.51
+  ],
+  "home_km": [
+   34,
+   28
+  ],
+  "ext_km": [
+   34,
+   30
+  ],
+  "credit": "VBB GTFS",
+  "feeds": [
+   {
+    "label": "vbb",
+    "path": "berlin/vbb.zip"
+   }
+  ]
+ },
+ "toronto": {
+  "name": "Toronto",
+  "sub": "TTC",
+  "center": [
+   -79.4,
+   43.72
+  ],
+  "home_km": [
+   32,
+   24
+  ],
+  "ext_km": [
+   34,
+   26
+  ],
+  "coast": true,
+  "credit": "TTC GTFS",
+  "feeds": [
+   {
+    "label": "ttc",
+    "path": "toronto/ttc.zip"
+   }
+  ]
+ },
+ "hong-kong": {
+  "name": "Hong Kong",
+  "sub": "KMB, Citybus, minibuses & more",
+  "center": [
+   114.17,
+   22.34
+  ],
+  "home_km": [
+   32,
+   26
+  ],
+  "ext_km": [
+   30,
+   24
+  ],
+  "coast": true,
+  "credit": "Transport Department GTFS",
+  "feeds": [
+   {
+    "label": "td",
+    "path": "hongkong/td.zip"
+   }
+  ]
+ }
+}
