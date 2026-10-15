@@ -301,7 +301,7 @@ function drawStatic() {
   staticDirty = false; if (!C) return;
   c.setTransform(dpr*s, 0, 0, dpr*s, dpr*view.x, dpr*view.y);
   c.lineJoin = "round"; c.lineCap = "round";
-  const px = 1 / s, zf = Math.min(2.2, Math.max(0.8, Math.sqrt(s)));
+  const px = 1 / s, zf = Math.min(1.5, Math.max(0.8, Math.pow(s, 0.35)));
   c.fillStyle = "#222623"; c.fill(C.parks);
   c.strokeStyle = "#2b2b2f"; c.lineWidth = 1.0 * zf * px; c.stroke(C.roads[2]);
   c.strokeStyle = "#343439"; c.lineWidth = 1.4 * zf * px; c.stroke(C.roads[1]);

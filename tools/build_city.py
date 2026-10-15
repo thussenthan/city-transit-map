@@ -538,17 +538,55 @@ def bundle_lanes():
         maps[i] = (so, sn); shapes[i][2] = enc(simp(newp, 0.1))
     return maps
 
+def merge_paths():
+    """Same-colour metro/rail paths that run side by side within a few pixels (separate branches, directions or slightly different
+    snaps of one line) are pulled onto one smooth shared line: every sample moves to the mean of the same-colour samples around it
+    (a 3x3 neighbourhood of 3 px cells, two passes). Also irons out snapping wobble. Returns {shape: (orig dist samples, new dist samples)}."""
+    ids = [i for i in shape_xy if shapes[i][0] >= 1 and len(shape_xy[i]) >= 2]
+    if not ids: return {}
+    gid = {g: n for n, g in enumerate(sorted({(shapes[i][0], shapes[i][1]) for i in ids}))}
+    P, G, samp, tot = [], [], {}, 0
+    for i in ids:
+        xy = shape_xy[i]; cum = np.r_[0, np.cumsum(np.hypot(*np.diff(xy, axis=0).T))]
+        if cum[-1] < 1e-6: continue
+        so = np.unique(np.r_[np.arange(0, cum[-1], 2.0), cum[-1]])
+        P.append(np.column_stack([np.interp(so, cum, xy[:, 0]), np.interp(so, cum, xy[:, 1])]))
+        G.append(np.full(len(so), gid[(shapes[i][0], shapes[i][1])])); samp[i] = (so, tot, len(so)); tot += len(so)
+    P0, G = np.vstack(P), np.concatenate(G); P = P0.copy()
+    fixed = np.zeros(len(P), bool)
+    for so, st_, ln in samp.values(): fixed[st_] = fixed[st_ + ln - 1] = True
+    offs = [dx * 40000 + dy for dx in (-1, 0, 1) for dy in (-1, 0, 1)]
+    for _ in range(2):
+        cx, cy = np.floor(P[:, 0] / 3.0).astype(np.int64) + 8, np.floor(P[:, 1] / 3.0).astype(np.int64) + 8
+        key = (G * 40000 + cx) * 40000 + cy
+        uk, inv = np.unique(key, return_inverse=True)
+        cnt = np.bincount(inv).astype(float); sx = np.bincount(inv, P[:, 0]); sy = np.bincount(inv, P[:, 1])
+        ax = np.zeros(len(P)); ay = np.zeros(len(P)); an = np.zeros(len(P))
+        for o in offs:
+            nk = key + o; pos = np.minimum(np.searchsorted(uk, nk), len(uk) - 1); ok = uk[pos] == nk
+            ax += np.where(ok, sx[pos], 0); ay += np.where(ok, sy[pos], 0); an += np.where(ok, cnt[pos], 0)
+        P = np.where(fixed[:, None], P, np.column_stack([ax / an, ay / an]))
+    maps = {}
+    for i, (so, st_, ln) in samp.items():
+        newp = P[st_:st_ + ln]; sn = np.r_[0, np.cumsum(np.hypot(*np.diff(newp, axis=0).T))]
+        sn = np.maximum.accumulate(sn); shape_xy[i] = newp; maps[i] = (so, sn)
+    return maps
+
+canon_maps = merge_paths()
 lane_maps = bundle_lanes()
+def remap(i, d):                                            # original distance along shape i -> distance along its drawn (merged, laned) path
+    if i in canon_maps: so, sn = canon_maps[i]; d = np.interp(d, so, sn)
+    if i in lane_maps: so, sn = lane_maps[i]; d = np.interp(d, so, sn)
+    return d
 for i in range(len(shapes)):                                # every other shape is encoded as-is
     if shapes[i][2] is None: shapes[i][2] = enc(shape_xy[i])
 PC, PD = [], []                                             # stop positions per pattern (count, delta-coded distances)
 for psi, pdist in pats:
     pq = np.rint(np.asarray(pdist) * U).astype(np.int64)
-    if psi in lane_maps: so, sn = lane_maps[psi]; pq = np.rint(np.interp(pq / U, so, sn) * U).astype(np.int64)
+    if psi in lane_maps or psi in canon_maps: pq = np.rint(remap(psi, pq / U) * U).astype(np.int64)
     pq = np.maximum.accumulate(pq); PC.append(len(pq)); PD.extend(np.diff(pq, prepend=0).tolist())
 for si, ri, hi, ts_i, dq, pid in vrec:
-    if si in lane_maps:
-        so, sn = lane_maps[si]; dq = np.rint(np.interp(dq / U, so, sn) * U).astype(np.int64)
+    if si in lane_maps or si in canon_maps: dq = np.rint(remap(si, dq / U) * U).astype(np.int64)
     veh.extend([si, ri, hi, len(T), len(ts_i), pid])
     T.extend(np.diff(ts_i, prepend=0).tolist()); D.extend(np.diff(dq, prepend=0).tolist())
 print(f"  lanes applied to {len(lane_maps)} metro/rail shapes", flush=True)
