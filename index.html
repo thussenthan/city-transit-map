@@ -66,7 +66,7 @@
   .tip small { display:block; color:var(--dim); margin-top:3px; }
   .foot { position:fixed; left:0; right:0; bottom:max(5px,env(safe-area-inset-bottom)); text-align:center; font-size:11px; color:var(--faint); pointer-events:none; padding:0 8px; }
   .foot a { color:inherit; pointer-events:auto; }
-  #hide { width:42px; height:30px; padding:0; font-size:15px; }
+  #hide { width:42px; height:30px; padding:0; display:inline-flex; align-items:center; justify-content:center; }
   #restore { position:fixed; right:max(12px,env(safe-area-inset-right)); bottom:max(26px,calc(env(safe-area-inset-bottom) + 14px)); z-index:7; display:none;
              padding:7px 14px; border-radius:99px; font-size:13px; font-weight:500; background:rgba(24,24,27,.55); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
              color:var(--dim); opacity:.55; }
@@ -118,7 +118,7 @@
     <button class="chip" data-cls="2" aria-pressed="true"><i data-chipcol="rail"></i>Regional rail</button>
     <button class="chip" data-cls="0" aria-pressed="true"><i data-chipcol="bus"></i>Bus</button>
     <button class="chip heat" id="heat" aria-pressed="false" title="Density heatmap (D)"><i></i>Heatmap</button>
-    <button id="hide" aria-label="Hide controls" title="Hide controls (H)">⌄</button>
+    <button id="hide" aria-label="Hide controls" title="Hide controls (H)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:auto"><path d="M3 5l4 4 4-4"/></svg></button>
   </div>
 </div>
 <button id="restore" aria-label="Show controls" title="Show controls (H)">Show</button>
@@ -444,7 +444,7 @@ function heatCalibrate() {                              // find the peak moment,
   for (let tt = C.tMin; tt <= C.tMax; tt += 600) { let n = 0; for (let k = 0; k < NV; k++) if (tt >= vs[k].t0 && tt <= vs[k].t1) n++; if (n > bestN) { bestN = n; bestT = tt; } }
   heatSetup(); hGrid.a.fill(0); const p = new Float32Array(2), h = new Float32Array(2);
   for (let k = 0; k < NV; k++) { const v = vs[k]; if (bestT < v.t0 || bestT > v.t1) continue; locate(v, bestT, 0, p, h); heatAccumulate(p[0], p[1], 1); }
-  heatBlur();
+  heatBlur(); heatBlur();
   const vals = []; for (const x of hGrid.a) if (x > 0.02) vals.push(x);
   vals.sort((x, y) => x - y);
   C.heatScale = Math.max(0.5, vals.length ? vals[Math.floor(vals.length * 0.995)] : 1); C.heatPeak = { t: bestT, n: bestN };
@@ -454,7 +454,7 @@ function drawHeat() {
   if (!C.heatScale) heatCalibrate();
   heatSetup(); const { gw, gh, a } = hGrid, { pos, live, alpha, NV, vs } = C; a.fill(0);
   for (let k = 0; k < NV; k++) if (live[k] && alpha[k] > 0) heatAccumulate(pos[2*k], pos[2*k+1], alpha[k]);
-  heatBlur();
+  heatBlur(); heatBlur();
   const d = hImg.data, inv = 255 / C.heatScale;
   for (let i = 0; i < a.length; i++) {
     const q = Math.min(255, Math.pow(Math.min(1, a[i] / C.heatScale), 0.8) * 255 | 0) * 4;
