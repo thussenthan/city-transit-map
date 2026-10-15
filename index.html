@@ -415,9 +415,9 @@ function drawDots() {
 }
 
 // ---------- density heatmap ----------
-// Vehicles running per ~320 m cell (blurred), coloured against the city's peak: the cell value that the busiest 0.1% of
+// Vehicles running per cell, sized to the zoom level (blurred), coloured against the city's peak: the cell value that the busiest 0.1% of
 // covered cells reach at the city's peak moment of the day.
-const HC = 16, heatLUT = new Uint8ClampedArray(256 * 4);
+let HC = 16; const heatLUT = new Uint8ClampedArray(256 * 4);
 for (let i = 0; i < 256; i++) {
   const v = i / 255, st = [[0, 0, 0, 0, 0], [.08, 40, 40, 150, 60], [.3, 40, 150, 190, 130], [.55, 120, 200, 90, 180], [.78, 250, 190, 50, 205], [1, 245, 60, 50, 225]];
   let j = 1; while (j < st.length - 1 && v > st[j][0]) j++;
@@ -427,8 +427,8 @@ for (let i = 0; i < 256; i++) {
 let heat = false, hcv = document.createElement("canvas"), hctx = hcv.getContext("2d"), hGrid = null, hTmp = null, hImg = null;
 function heatSetup() {
   const gw = Math.ceil(C.world.w / HC), gh = Math.ceil(C.world.h / HC);
-  if (hGrid && hGrid.gw === gw && hGrid.gh === gh) return;
-  hGrid = { gw, gh, a: new Float32Array(gw * gh) }; hTmp = new Float32Array(gw * gh);
+  if (hGrid && hGrid.gw === gw && hGrid.gh === gh && hGrid.hc === HC) return;
+  hGrid = { hc: HC, gw, gh, a: new Float32Array(gw * gh) }; hTmp = new Float32Array(gw * gh);
   hcv.width = gw; hcv.height = gh; hImg = hctx.createImageData(gw, gh);
 }
 function heatBlur() {                                   // [1 2 1] x [1 2 1] smoothing, in place
@@ -439,25 +439,32 @@ function heatBlur() {                                   // [1 2 1] x [1 2 1] smo
     a[o] = (b[o] * 2 + (y > 0 ? b[o-gw] : 0) + (y < gh - 1 ? b[o+gw] : 0)) * .25;
 }
 function heatAccumulate(px, py, w) { const { gw, gh, a } = hGrid, x = (px / HC) | 0, y = (py / HC) | 0; if (x >= 0 && y >= 0 && x < gw && y < gh) a[y * gw + x] += w; }
-function heatCalibrate() {                              // find the peak moment, then the 98th-percentile cell value there
+function heatCalibrate() {                              // find the peak moment and keep where every vehicle is at that moment
   const { vs, NV } = C; let bestT = C.tMin, bestN = -1;
   for (let tt = C.tMin; tt <= C.tMax; tt += 600) { let n = 0; for (let k = 0; k < NV; k++) if (tt >= vs[k].t0 && tt <= vs[k].t1) n++; if (n > bestN) { bestN = n; bestT = tt; } }
-  heatSetup(); hGrid.a.fill(0); const p = new Float32Array(2), h = new Float32Array(2);
-  for (let k = 0; k < NV; k++) { const v = vs[k]; if (bestT < v.t0 || bestT > v.t1) continue; locate(v, bestT, 0, p, h); heatAccumulate(p[0], p[1], 1); }
+  const pts = [], p = new Float32Array(2), h = new Float32Array(2);
+  for (let k = 0; k < NV; k++) { const v = vs[k]; if (bestT < v.t0 || bestT > v.t1) continue; locate(v, bestT, 0, p, h); pts.push(p[0], p[1]); }
+  C.peakPts = pts; C.peakInfo = { t: bestT, n: bestN }; C.hs = {};
+}
+function heatScaleFor(hc) {                             // value of the busiest 0.1% of covered cells at the peak moment, for this cell size
+  if (C.hs[hc]) return C.hs[hc];
+  HC = hc; heatSetup(); hGrid.a.fill(0); const pts = C.peakPts;
+  for (let i = 0; i < pts.length; i += 2) heatAccumulate(pts[i], pts[i+1], 1);
   heatBlur(); heatBlur(); heatBlur();
-  const vals = []; for (const x of hGrid.a) if (x > 0.02) vals.push(x);
+  const vals = []; for (const x of hGrid.a) if (x > 0.02 * hc * hc / 256) vals.push(x);
   vals.sort((x, y) => x - y);
-  C.heatScale = Math.max(0.5, vals.length ? vals[Math.floor(vals.length * 0.999)] : 1); C.heatPeak = { t: bestT, n: bestN };
+  return C.hs[hc] = Math.max(0.3, vals.length ? vals[Math.floor(vals.length * 0.999)] : 1);
 }
 function drawHeat() {
   if (!heat || !C) return;
-  if (!C.heatScale) heatCalibrate();
-  heatSetup(); const { gw, gh, a } = hGrid, { pos, live, alpha, NV, vs } = C; a.fill(0);
+  if (!C.peakPts) heatCalibrate();
+  HC = Math.max(6, Math.min(36, Math.round(10 / view.s)));      // ~10 screen px per cell: zooming in sharpens the map
+  const scale = heatScaleFor(HC); heatSetup(); const { gw, gh, a } = hGrid, { pos, live, alpha, NV, vs } = C; a.fill(0);
   for (let k = 0; k < NV; k++) if (live[k] && alpha[k] > 0) heatAccumulate(pos[2*k], pos[2*k+1], alpha[k]);
   heatBlur(); heatBlur(); heatBlur();
-  const d = hImg.data, inv = 255 / C.heatScale;
+  const d = hImg.data;
   for (let i = 0; i < a.length; i++) {
-    const q = Math.min(255, Math.min(1, a[i] / C.heatScale) * 255 | 0) * 4;
+    const q = Math.min(255, Math.pow(Math.min(1, a[i] / scale), 0.85) * 255 | 0) * 4;
     d[4*i] = heatLUT[q]; d[4*i+1] = heatLUT[q+1]; d[4*i+2] = heatLUT[q+2]; d[4*i+3] = heatLUT[q+3];
   }
   hctx.putImageData(hImg, 0, 0);
