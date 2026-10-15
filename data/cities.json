@@ -13,7 +13,7 @@
    "Community buses": "20261020"
   },
   "vehicles": 66651,
-  "bytes": 6579148,
+  "bytes": 6872223,
   "tz": "Asia/Tokyo"
  },
  {
@@ -27,7 +27,7 @@
    "MTR & Light Rail": "20261020"
   },
   "vehicles": 150052,
-  "bytes": 2652051,
+  "bytes": 3003505,
   "tz": "Asia/Hong_Kong"
  },
  {
@@ -41,7 +41,7 @@
    "Rail, Tube & trams": "20261020"
   },
   "vehicles": 148740,
-  "bytes": 5744984,
+  "bytes": 6569381,
   "tz": "Europe/London"
  },
  {
@@ -54,7 +54,7 @@
    "idfm": "20261020"
   },
   "vehicles": 123541,
-  "bytes": 3747156,
+  "bytes": 4712507,
   "tz": "Europe/Paris"
  },
  {
@@ -67,7 +67,7 @@
    "Subway": "20261020"
   },
   "vehicles": 8178,
-  "bytes": 4574883,
+  "bytes": 4518623,
   "tz": "Asia/Seoul"
  },
  {
@@ -88,7 +88,7 @@
    "NJ Transit bus": "20261020"
   },
   "vehicles": 78433,
-  "bytes": 2653132,
+  "bytes": 3229557,
   "tz": "America/New_York"
  },
  {
@@ -102,7 +102,7 @@
    "Buses": "20251230"
   },
   "vehicles": 153797,
-  "bytes": 2537357,
+  "bytes": 2895683,
   "tz": "Africa/Cairo"
  },
  {
@@ -115,7 +115,7 @@
    "tw": "20261020"
   },
   "vehicles": 45247,
-  "bytes": 1943208,
+  "bytes": 2707696,
   "tz": "Asia/Taipei"
  },
  {
@@ -128,7 +128,7 @@
    "vbb": "20261020"
   },
   "vehicles": 50124,
-  "bytes": 1531989,
+  "bytes": 2076874,
   "tz": "Europe/Berlin"
  },
  {
@@ -141,7 +141,7 @@
    "wl": "20261020"
   },
   "vehicles": 35537,
-  "bytes": 764303,
+  "bytes": 867828,
   "tz": "Europe/Vienna"
  },
  {
@@ -157,7 +157,7 @@
    "SkyBus": "20261020"
   },
   "vehicles": 31707,
-  "bytes": 2238161,
+  "bytes": 2663465,
   "tz": "Australia/Melbourne"
  },
  {
@@ -170,7 +170,7 @@
    "ttc": "20261020"
   },
   "vehicles": 40478,
-  "bytes": 1269613,
+  "bytes": 1428472,
   "tz": "America/Toronto"
  },
  {
@@ -183,7 +183,7 @@
    "krl": "20261020"
   },
   "vehicles": 1125,
-  "bytes": 1005932,
+  "bytes": 1024540,
   "tz": "Asia/Jakarta"
  },
  {
@@ -196,7 +196,7 @@
    "cta": "20261020"
   },
   "vehicles": 21124,
-  "bytes": 1413883,
+  "bytes": 1510175,
   "tz": "America/Chicago"
  },
  {
@@ -209,7 +209,7 @@
    "hsl": "20261020"
   },
   "vehicles": 23445,
-  "bytes": 1072440,
+  "bytes": 1308657,
   "tz": "Europe/Helsinki"
  },
  {
@@ -223,7 +223,7 @@
    "rail": "20261020"
   },
   "vehicles": 14593,
-  "bytes": 1621859,
+  "bytes": 1774241,
   "tz": "America/Los_Angeles"
  },
  {
@@ -236,7 +236,7 @@
    "mbta": "20261020"
   },
   "vehicles": 16334,
-  "bytes": 1144807,
+  "bytes": 1310222,
   "tz": "America/New_York"
  },
  {
@@ -250,7 +250,7 @@
    "rail": "20261020"
   },
   "vehicles": 15414,
-  "bytes": 1029709,
+  "bytes": 1255571,
   "tz": "America/New_York"
  },
  {
@@ -263,7 +263,7 @@
    "nl": "20261020"
   },
   "vehicles": 36276,
-  "bytes": 2561772,
+  "bytes": 2968710,
   "tz": "Europe/Amsterdam"
  },
  {
@@ -277,7 +277,7 @@
    "BART": "20261020"
   },
   "vehicles": 10497,
-  "bytes": 822157,
+  "bytes": 900038,
   "tz": "America/Los_Angeles"
  },
  {
@@ -290,7 +290,7 @@
    "mts": "20261020"
   },
   "vehicles": 7461,
-  "bytes": 774122,
+  "bytes": 861791,
   "tz": "America/Los_Angeles"
  },
  {
@@ -303,7 +303,7 @@
    "mdt": "20261020"
   },
   "vehicles": 9959,
-  "bytes": 884258,
+  "bytes": 958667,
   "tz": "America/New_York"
  },
  {
@@ -316,7 +316,7 @@
    "marta": "20261020"
   },
   "vehicles": 7820,
-  "bytes": 958031,
+  "bytes": 1065402,
   "tz": "America/New_York"
  },
  {
@@ -329,7 +329,7 @@
    "trimet": "20261020"
   },
   "vehicles": 5774,
-  "bytes": 744208,
+  "bytes": 832930,
   "tz": "America/Los_Angeles"
  },
  {
@@ -342,7 +342,7 @@
    "metro": "20261020"
   },
   "vehicles": 8028,
-  "bytes": 1454442,
+  "bytes": 1573682,
   "tz": "America/Chicago"
  }
 ]

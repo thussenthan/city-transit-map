@@ -535,7 +535,7 @@ def bundle_lanes():
             o = np.convolve(np.pad(o, half, mode="edge"), kern, mode="valid")           # ease lane changes
         newp = P[sl] + o[:, None] * NM[sl]
         sn = np.r_[0, np.cumsum(np.hypot(*np.diff(newp, axis=0).T))]
-        maps[i] = (so, sn); shapes[i][2] = enc(simp(newp, 0.1))
+        maps[i] = (so, sn); shapes[i][2] = enc(simp(newp, 0.15))
     return maps
 
 def merge_paths():
@@ -579,7 +579,40 @@ def remap(i, d):                                            # original distance 
     if i in lane_maps: so, sn = lane_maps[i]; d = np.interp(d, so, sn)
     return d
 for i in range(len(shapes)):                                # every other shape is encoded as-is
-    if shapes[i][2] is None: shapes[i][2] = enc(shape_xy[i])
+    if shapes[i][2] is None: shapes[i][2] = enc(simp(shape_xy[i], 0.1) if i in canon_maps else shape_xy[i])
+def draw_lines():
+    """Drawing layer: every corridor drawn once per colour. Trips share track, so thousands of shapes overlap; only the 1 px cells a
+    colour has not covered yet are kept, as short polylines. (Shapes stay as they are for vehicles and hover highlights.)"""
+    groups = {}
+    for i, sh in enumerate(shapes):
+        groups.setdefault((sh[0], sh[1]), []).append(i)
+    lines = []
+    for (cls, col), ids in groups.items():
+        pts, own = [], []
+        for i in ids:
+            xy = np.cumsum(np.asarray(shapes[i][2], float).reshape(-1, 2), axis=0) / U
+            if len(xy) < 2: continue
+            cum = np.r_[0, np.cumsum(np.hypot(*np.diff(xy, axis=0).T))]
+            if cum[-1] < 1e-6: continue
+            so = np.unique(np.r_[np.arange(0, cum[-1], 1.0), cum[-1]])
+            pts.append(np.column_stack([np.interp(so, cum, xy[:, 0]), np.interp(so, cum, xy[:, 1])])); own.append(np.full(len(so), i))
+        if not pts: continue
+        P, O = np.vstack(pts), np.concatenate(own)
+        key = np.floor(P[:, 0]).astype(np.int64) * 100000 + np.floor(P[:, 1]).astype(np.int64)
+        _, first = np.unique(key, return_index=True)
+        keep = np.zeros(len(P), bool); keep[first] = True
+        keep[1:] |= keep[:-1] & False                                                   # (runs are cut below)
+        run = np.flatnonzero(np.diff(np.r_[0, keep.astype(np.int8), 0]) == 1), np.flatnonzero(np.diff(np.r_[0, keep.astype(np.int8), 0]) == -1)
+        for a_, b_ in zip(*run):
+            lo = max(a_ - 1, 0)
+            if O[lo] != O[a_]: lo = a_                                                  # do not reach back into another shape
+            seg = P[lo:b_]
+            if len(seg) < 2: continue
+            seg = simp(seg, 0.1)
+            lines.append([cls, col, enc(seg)])
+    return lines
+LINES = draw_lines()
+print(f"  draw layer: {len(LINES)} polylines, {sum(len(l[2]) // 2 for l in LINES)} points (shapes: {sum(len(s[2]) // 2 for s in shapes)} points)", flush=True)
 PC, PD = [], []                                             # stop positions per pattern (count, delta-coded distances)
 for psi, pdist in pats:
     pq = np.rint(np.asarray(pdist) * U).astype(np.int64)
@@ -595,7 +628,7 @@ for k_, r_ in RAIL_ROUTERS.items():
     print("  rail router", k_, dict(r_.stats), flush=True)
     for a_, b_ in r_.failed[:12]: print("    unroutable", [round(c, 4) for c in to_ll(*r_.P[a_])], "->", [round(c, 4) for c in to_ll(*r_.P[b_])], "chord km %.1f" % (np.hypot(*(r_.P[a_] - r_.P[b_])) * MPP / 1000), flush=True)
 if ROUTER is not None: print("  road router", dict(ROUTER.stats), flush=True)
-payload = {"id": args.city, "u": U, "base": base, "shapes": shapes, "routes": routes, "heads": heads,
+payload = {"id": args.city, "u": U, "base": base, "shapes": shapes, "lines": LINES, "routes": routes, "heads": heads,
            "veh": veh, "T": T, "D": D, "PC": PC, "PD": PD, "view": {"w": WPX, "h": HPX},
            "home": {"cx": WPX / 2, "cy": HPX / 2, "w": CFG["home_km"][0] * 1000 / MPP, "h": CFG["home_km"][1] * 1000 / MPP},
            "date": Counter(dates_used).most_common(1)[0][0] if dates_used else "", "dates": dict(feed_dates)}

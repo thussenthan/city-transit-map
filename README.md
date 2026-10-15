@@ -1,7 +1,7 @@
 # City Transit Map
 
 Every scheduled bus, train and tram in a city, animated from its open GTFS timetable. One page, one tab per city:
-**Tokyo, Hong Kong, London, Paris, Seoul, New York, Cairo, Taipei, Berlin, Vienna, Melbourne, Toronto, Jakarta, Chicago, Helsinki, Los Angeles, Boston, Philadelphia, Amsterdam, San Francisco, San Diego, Miami, Atlanta, Portland, Minneapolis** (tabs are ordered by rough annual ridership of each city's agencies, largest first; the ordering is approximate). The page opens on New York; the first city opens at its current local time, and switching tabs keeps the same moment in the world (the clock just shifts by the time-zone difference, so it keeps running from wherever it was).
+**Tokyo, Hong Kong, London, Paris, Seoul, New York, Cairo, Taipei, Berlin, Vienna, Melbourne, Toronto, Jakarta, Chicago, Helsinki, Los Angeles, Boston, Philadelphia, Amsterdam, San Francisco, San Diego, Miami, Atlanta, Portland, Minneapolis** (tabs are ordered by rough annual ridership of each city's agencies, largest first; the ordering is approximate). The page opens on New York; the first city opens at its current local time, and switching tabs doesn't touch the clock (it keeps running from wherever it was).
 
 Live: <https://thussenthan.github.io/city-transit-map/>
 

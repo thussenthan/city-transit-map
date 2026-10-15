@@ -146,7 +146,7 @@ function nowIn(tz) {                                  // seconds since local mid
     const g = k => +p.find(x => x.type === k).value; return g("hour") * 3600 + g("minute") * 60 + g("second"); }
   catch (e) { const d = new Date(); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); }
 }
-let staticDirty = true, hover = -1, selected = -1, mouse = null;
+let staticDirty = true, stValid = false, stView = { s: 1, x: 0, y: 0 }, lastView = { s: 0, x: 0, y: 0 }, lastMove = 0, hover = -1, selected = -1, mouse = null;
 let C = null;                                       // current city
 let manifest = [], loadToken = 0;
 const cache = new Map();                            // id -> Promise<city>
@@ -169,7 +169,9 @@ function build(data) {
   c.shapes = data.shapes.map(([cls, color, flat]) => {
     const pts = unflat(flat, U), n = pts.length / 2, cum = new Float32Array(n);
     for (let i = 1; i < n; i++) cum[i] = cum[i-1] + Math.hypot(pts[2*i] - pts[2*i-2], pts[2*i+1] - pts[2*i-1]);
-    return { cls, color, pts, cum, n, path: pathOf(pts, false) };
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (let i = 0; i < pts.length; i += 2) { const x = pts[i], y = pts[i+1]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    return { cls, color, pts, cum, n, path: pathOf(pts, false), bb: [x0, y0, x1, y1] };
   });
   const pats = []; { let po = 0;
     for (const n of data.PC) { const sd = new Float32Array(n); let q = 0; for (let i = 0; i < n; i++) { q += data.PD[po + i]; sd[i] = q / U; } pats.push(sd); po += n; } }
@@ -180,15 +182,16 @@ function build(data) {
     for (let i = 0; i < cnt; i++) { a += data.T[off+i]; b += data.D[off+i]; tt[i] = a; dd[i] = b / U; }
     c.vs[k] = { shape: c.shapes[V[6*k]], route: V[6*k+1], head: V[6*k+2], pat: pats[V[6*k+5]], t: tt, d: dd, t0: tt[0], t1: tt[cnt-1] };
   }
-  c.NV = NV; c.pos = new Float32Array(NV * 2); c.live = new Uint8Array(NV); c.alpha = new Float32Array(NV); c.hd = new Float32Array(NV * 2);
+  c.NV = NV; c.liveList = new Int32Array(NV); c.nList = 0; c.pos = new Float32Array(NV * 2); c.live = new Uint8Array(NV); c.alpha = new Float32Array(NV); c.hd = new Float32Array(NV * 2);
   c.routes = data.routes; c.heads = data.heads;
-  const byColor = {};
-  for (const s of c.shapes) (byColor[s.cls + s.color] ||= { cls: s.cls, color: s.color, path: new Path2D() }).path.addPath(s.path);
+  const byColor = {};                                 // drawing layer: each corridor once per colour (data.lines), else the shapes themselves
+  if (data.lines) for (const [cls, color, flat] of data.lines) (byColor[cls + color] ||= { cls, color, path: new Path2D() }).path.addPath(pathOf(unflat(flat, U), false));
+  else for (const s of c.shapes) (byColor[s.cls + s.color] ||= { cls: s.cls, color: s.color, path: new Path2D() }).path.addPath(s.path);
   c.groups = Object.values(byColor).sort((a, b) => a.cls - b.cls);
   c.tMin = Infinity; c.tMax = 0;
   for (const v of c.vs) { c.tMin = Math.min(c.tMin, v.t0); c.tMax = Math.max(c.tMax, v.t1); }
   c.tMin = Math.floor(c.tMin / 900) * 900; c.tMax = Math.ceil(c.tMax / 900) * 900; c.tEnd = Math.max(c.tMax, 86400);
-  data.base = data.shapes = data.veh = data.T = data.D = data.PC = data.PD = null;   // free the raw arrays
+  data.base = data.shapes = data.lines = data.veh = data.T = data.D = data.PC = data.PD = null;   // free the raw arrays
   return c;
 }
 function loadCity(id) {
@@ -222,13 +225,12 @@ async function select(id, replace) {
     ? "Timetables: " + Object.entries(ds).map(([k, v]) => k + " " + fmtShort(v)).join(", ")
     : fmtDate(c.date) + " timetable");
   timeEl.min = 0; timeEl.max = c.tEnd;
-  // first load: the city's current local time. After that, keep the same moment in the world: minutes stay put and the hour
-  // shifts by the time-zone difference between the two cities.
-  let start = curTz === null ? nowIn(m.tz) : t + tzOffset(m.tz) - tzOffset(curTz);
+  // first load: the city's current local time. After that the clock just keeps running: switching tabs does not move it.
+  let start = curTz === null ? nowIn(m.tz) : t;
   start = ((start % 86400) + 86400) % 86400;
   if (start < c.tMin && start + 86400 <= c.tMax) start += 86400;        // after midnight: late-night trips run past 24:00
   setTime(start, false); curTz = m.tz;                                  // no snapping: a night-time moment just shows an empty map
-  homeView(); staticDirty = true;
+  stValid = false; homeView(); staticDirty = true;
 }
 function makeTabs() {
   const nav = $("tabs"), menu = $("menu");
@@ -283,7 +285,7 @@ function clampView() {                                // the map always fills th
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 2); vw = innerWidth; vh = innerHeight;
   for (const c of [cv, st]) { c.width = Math.round(vw * dpr); c.height = Math.round(vh * dpr); }
-  staticDirty = true;
+  staticDirty = true; stValid = false;
 }
 let first = true;
 function onResize() {
@@ -298,7 +300,8 @@ addEventListener("resize", onResize); onResize();
 function drawStatic() {
   const s = view.s, c = sctx;
   c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = "#1e1e21"; c.fillRect(0, 0, st.width, st.height);
-  staticDirty = false; if (!C) return;
+  staticDirty = false; stValid = false; if (!C) return;
+  stView = { s: view.s, x: view.x, y: view.y }; stValid = true;
   c.setTransform(dpr*s, 0, 0, dpr*s, dpr*view.x, dpr*view.y);
   c.lineJoin = "round"; c.lineCap = "round";
   const px = 1 / s, zf = Math.min(1.5, Math.max(0.8, Math.pow(s, 0.35)));
@@ -377,17 +380,21 @@ function locate(v, tt, k, pos, hd) {
 let nLive = 0;
 function updateVehicles() {
   nLive = 0; if (!C) return;
-  const { vs, pos, live, alpha, NV, hd } = C;
+  const { vs, pos, live, alpha, NV, hd, liveList } = C; let nl = 0;
   const F = Math.max(45, speed * 0.6);                // fade window in timetable seconds (~0.6 s of screen time)
+  const cx0 = -view.x / view.s - 20, cy0 = -view.y / view.s - 20, cx1 = (vw - view.x) / view.s + 20, cy1 = (vh - view.y) / view.s + 20;   // view rectangle in world px
   for (let k = 0; k < NV; k++) {
     const v = vs[k];
     if (t < v.t0 - F || t > v.t1 + F || !show[v.shape.cls]) { live[k] = 0; continue; }
     const inside = t >= v.t0 && t <= v.t1;
-    locate(v, inside ? t : t < v.t0 ? v.t0 : v.t1, k, pos, hd);     // wait at the first/last stop while fading
-    live[k] = 1;
-    alpha[k] = inside ? 1 : 1 - (t < v.t0 ? v.t0 - t : t - v.t1) / F;
     if (inside) nLive++;
+    const bb = v.shape.bb;
+    if (!heat && (bb[2] < cx0 || bb[0] > cx1 || bb[3] < cy0 || bb[1] > cy1)) { live[k] = 0; continue; }     // whole route is off screen: skip the maths
+    locate(v, inside ? t : t < v.t0 ? v.t0 : v.t1, k, pos, hd);     // wait at the first/last stop while fading
+    live[k] = 1; liveList[nl++] = k;
+    alpha[k] = inside ? 1 : 1 - (t < v.t0 ? v.t0 - t : t - v.t1) / F;
   }
+  C.nList = nl;
 }
 function drawDots() {
   if (!C) return;
@@ -397,17 +404,21 @@ function drawDots() {
     ctx.save(); ctx.setTransform(dpr*s, 0, 0, dpr*s, dpr*view.x, dpr*view.y);
     ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 2.4 / s; ctx.lineJoin = "round"; ctx.stroke(vs[selected].shape.path); ctx.restore();
   }
+  const { liveList, nList } = C, dim = heat ? 0.4 : 1;
   for (const pass of [0, 1]) {                                  // buses first, rail on top
-    for (let k = 0; k < NV; k++) {
-      if (!live[k]) continue;
-      const big = vs[k].shape.cls > 0; if ((pass === 1) !== big) continue;
-      const x = pos[2*k] * s + view.x, y = pos[2*k+1] * s + view.y;
-      if (x < -10 || y < -10 || x > vw + 10 || y > vh + 10) continue;
-      const r = (big ? 2.6 : 1.7) * zf;
-      ctx.globalAlpha = alpha[k] * (heat ? 0.4 : 1);
+    const big = pass === 1, r = (big ? 2.6 : 1.7) * zf;
+    ctx.globalAlpha = dim;                                      // fully visible dots are batched into one path; fading ones are drawn singly
+    if (big) { ctx.fillStyle = "rgba(255,255,255,.16)"; ctx.beginPath(); for (let n = 0; n < nList; n++) { const k = liveList[n]; if (alpha[k] < 1 || (vs[k].shape.cls > 0) !== big) continue;
+      const x = pos[2*k] * s + view.x, y = pos[2*k+1] * s + view.y; if (x < -10 || y < -10 || x > vw + 10 || y > vh + 10) continue; ctx.moveTo(x + r * 2, y); ctx.arc(x, y, r * 2, 0, 6.2832); } ctx.fill(); }
+    ctx.fillStyle = "#fff"; ctx.beginPath();
+    for (let n = 0; n < nList; n++) { const k = liveList[n]; if (alpha[k] < 1 || (vs[k].shape.cls > 0) !== big) continue;
+      const x = pos[2*k] * s + view.x, y = pos[2*k+1] * s + view.y; if (x < -10 || y < -10 || x > vw + 10 || y > vh + 10) continue; ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, 6.2832); }
+    ctx.fill();
+    for (let n = 0; n < nList; n++) { const k = liveList[n]; if (alpha[k] >= 1 || (vs[k].shape.cls > 0) !== big) continue;
+      const x = pos[2*k] * s + view.x, y = pos[2*k+1] * s + view.y; if (x < -10 || y < -10 || x > vw + 10 || y > vh + 10) continue;
+      ctx.globalAlpha = alpha[k] * dim;
       if (big) { ctx.fillStyle = "rgba(255,255,255,.16)"; ctx.beginPath(); ctx.arc(x, y, r * 2, 0, 6.2832); ctx.fill(); }
-      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
-    }
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill(); }
   }
   ctx.globalAlpha = 1;
   for (const k of [hover, selected]) if (k >= 0 && live[k]) {
@@ -460,7 +471,7 @@ function drawHeat() {
   if (!C.peakPts) heatCalibrate();
   HC = Math.max(6, Math.min(36, Math.round(10 / view.s)));      // ~10 screen px per cell: zooming in sharpens the map
   const scale = heatScaleFor(HC); heatSetup(); const { gw, gh, a } = hGrid, { pos, live, alpha, NV, vs } = C; a.fill(0);
-  for (let k = 0; k < NV; k++) if (live[k] && alpha[k] > 0) heatAccumulate(pos[2*k], pos[2*k+1], alpha[k]);
+  for (let n = 0; n < C.nList; n++) { const k = C.liveList[n]; if (alpha[k] > 0) heatAccumulate(pos[2*k], pos[2*k+1], alpha[k]); }
   heatBlur(); heatBlur(); heatBlur();
   const d = hImg.data;
   for (let i = 0; i < a.length; i++) {
@@ -486,7 +497,7 @@ $("hide").addEventListener("click", () => setMin(true)); $("restore").addEventLi
 $("play").addEventListener("click", () => { playing = !playing; $("play").textContent = playing ? "❚❚" : "▶"; });
 $("speed").addEventListener("change", e => speed = +e.target.value);
 document.querySelectorAll(".chip[data-cls]").forEach(b => b.addEventListener("click", () => {
-  const c = +b.dataset.cls; show[c] = !show[c]; b.setAttribute("aria-pressed", show[c]); staticDirty = true;
+  const c = +b.dataset.cls; show[c] = !show[c]; b.setAttribute("aria-pressed", show[c]); staticDirty = true; stValid = false;
   if (selected >= 0 && !show[C.vs[selected].shape.cls]) selected = -1; }));
 
 function zoomAt(px, py, f) {
@@ -514,8 +525,8 @@ cv.addEventListener("pointerleave", () => { mouse = null; });
 
 function nearest(px, py, maxd) {
   if (!C) return -1;
-  const { pos, live, vs, NV } = C; let best = -1, bd = maxd * maxd;
-  for (let k = 0; k < NV; k++) { if (!live[k]) continue;
+  const { pos, vs, liveList, nList } = C; let best = -1, bd = maxd * maxd;
+  for (let n = 0; n < nList; n++) { const k = liveList[n];
     const dx = pos[2*k] * view.s + view.x - px, dy = pos[2*k+1] * view.s + view.y - py, d = dx*dx + dy*dy;
     if (d < bd || (d === bd && vs[k].shape.cls > (vs[best]?.shape.cls ?? -1))) { bd = d; best = k; } }
   return best;
@@ -544,17 +555,22 @@ function frame(now) {
   if (playing && C) { t += dt * speed;
     if (t > C.tEnd) t = Math.max(0, t - 86400);                        // past the end of the service day: wrap to the same time next day
     setTime(t, false); }
-  if (staticDirty) drawStatic();
+  if (view.s !== lastView.s || view.x !== lastView.x || view.y !== lastView.y) { lastMove = now; lastView = { s: view.s, x: view.x, y: view.y }; }
+  if (staticDirty && (!stValid || now - lastMove > 140)) drawStatic();      // while panning/zooming reuse the last render, scaled; redraw once it settles
   updateVehicles();
   hover = mouse && !ptrs.size ? nearest(mouse[0], mouse[1], 14) : -1;
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(st, 0, 0);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (stValid && (stView.s !== view.s || stView.x !== view.x || stView.y !== view.y)) {
+    const f = view.s / stView.s; ctx.fillStyle = "#1e1e21"; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(f, 0, 0, f, dpr * (view.x - f * stView.x), dpr * (view.y - f * stView.y)); ctx.drawImage(st, 0, 0); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  } else ctx.drawImage(st, 0, 0);
   drawHeat(); drawDots(); updateTip();
   window.__frameMs = (window.__frameMs || 0) * 0.9 + (performance.now() - w0) * 0.1;
   if (now - countAt > 250) { $("count").textContent = C ? nLive.toLocaleString() + " vehicles running" : ""; countAt = now; }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__app = { COL, paintChips, easeDist, locate, view, get city() { return C; }, get t() { return t; }, set t(v) { t = v; }, dirty() { staticDirty = true; }, get size() { return [vw, vh]; } };   // debugging handle
+window.__app = { drawStatic, COL, paintChips, easeDist, locate, view, get city() { return C; }, get t() { return t; }, set t(v) { t = v; }, dirty() { staticDirty = true; }, get size() { return [vw, vh]; } };   // debugging handle
 
 (async () => {
   try { manifest = await (await fetch("data/cities.json")).json(); }
