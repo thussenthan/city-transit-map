@@ -1,12 +1,44 @@
 [
  {
-  "id": "philadelphia",
-  "name": "Philadelphia",
-  "sub": "SEPTA",
-  "credit": "SEPTA GTFS",
+  "id": "hong-kong",
+  "name": "Hong Kong",
+  "sub": "MTR, trams, buses & more",
+  "credit": "HK Transport Department GTFS, Hong Kong Community GTFS (ODbL)",
   "date": "20261020",
-  "vehicles": 15414,
-  "bytes": 981053
+  "dates": {
+   "Buses & trams": "20261020",
+   "MTR & Light Rail": "20261020"
+  },
+  "vehicles": 150052,
+  "bytes": 2535986,
+  "tz": "Asia/Hong_Kong"
+ },
+ {
+  "id": "london",
+  "name": "London",
+  "sub": "Tube, rail, trams & buses",
+  "credit": "Bus Open Data Service (DfT), Great Britain GTFS (Transitous/aubin.app)",
+  "date": "20261020",
+  "dates": {
+   "Buses": "20261020",
+   "Rail, Tube & trams": "20261020"
+  },
+  "vehicles": 149501,
+  "bytes": 4377266,
+  "tz": "Europe/London"
+ },
+ {
+  "id": "paris",
+  "name": "Paris",
+  "sub": "Île-de-France Mobilités",
+  "credit": "IDFM GTFS",
+  "date": "20261020",
+  "dates": {
+   "idfm": "20261020"
+  },
+  "vehicles": 123541,
+  "bytes": 3532209,
+  "tz": "Europe/Paris"
  },
  {
   "id": "new-york",
@@ -26,148 +58,8 @@
    "NJ Transit bus": "20261020"
   },
   "vehicles": 78433,
-  "bytes": 2511524
- },
- {
-  "id": "boston",
-  "name": "Boston",
-  "sub": "MBTA",
-  "credit": "MBTA GTFS",
-  "date": "20261020",
-  "vehicles": 16334,
-  "bytes": 1096953
- },
- {
-  "id": "chicago",
-  "name": "Chicago",
-  "sub": "CTA & Metra",
-  "credit": "CTA, Metra GTFS",
-  "date": "20261020",
-  "vehicles": 21124,
-  "bytes": 1379301
- },
- {
-  "id": "los-angeles",
-  "name": "Los Angeles",
-  "sub": "LA Metro",
-  "credit": "LA Metro GTFS",
-  "date": "20261020",
-  "dates": {
-   "bus": "20261020",
-   "rail": "20261020"
-  },
-  "vehicles": 14593,
-  "bytes": 1553698
- },
- {
-  "id": "san-francisco",
-  "name": "San Francisco",
-  "sub": "Muni & BART",
-  "credit": "SFMTA, BART GTFS",
-  "date": "20260825",
-  "dates": {
-   "Muni": "20260825",
-   "BART": "20261020"
-  },
-  "vehicles": 10497,
-  "bytes": 800843
- },
- {
-  "id": "san-diego",
-  "name": "San Diego",
-  "sub": "MTS",
-  "credit": "San Diego MTS GTFS",
-  "date": "20261020",
-  "dates": {
-   "mts": "20261020"
-  },
-  "vehicles": 7461,
-  "bytes": 756260
- },
- {
-  "id": "portland",
-  "name": "Portland",
-  "sub": "TriMet",
-  "credit": "TriMet GTFS",
-  "date": "20261020",
-  "dates": {
-   "trimet": "20261020"
-  },
-  "vehicles": 5774,
-  "bytes": 722683
- },
- {
-  "id": "minneapolis",
-  "name": "Minneapolis",
-  "sub": "Metro Transit",
-  "credit": "Metro Transit GTFS",
-  "date": "20261020",
-  "dates": {
-   "metro": "20261020"
-  },
-  "vehicles": 8028,
-  "bytes": 1431903
- },
- {
-  "id": "atlanta",
-  "name": "Atlanta",
-  "sub": "MARTA",
-  "credit": "MARTA GTFS",
-  "date": "20261020",
-  "dates": {
-   "marta": "20261020"
-  },
-  "vehicles": 7820,
-  "bytes": 942823
- },
- {
-  "id": "miami",
-  "name": "Miami",
-  "sub": "Miami-Dade Transit",
-  "credit": "Miami-Dade Transit GTFS",
-  "date": "20261020",
-  "dates": {
-   "mdt": "20261020"
-  },
-  "vehicles": 9959,
-  "bytes": 865915
- },
- {
-  "id": "toronto",
-  "name": "Toronto",
-  "sub": "TTC",
-  "credit": "TTC GTFS",
-  "date": "20261020",
-  "dates": {
-   "ttc": "20261020"
-  },
-  "vehicles": 40478,
-  "bytes": 1218003
- },
- {
-  "id": "london",
-  "name": "London",
-  "sub": "Tube, rail, trams & buses",
-  "credit": "Bus Open Data Service (DfT), Great Britain GTFS (Transitous/aubin.app)",
-  "date": "20261020",
-  "dates": {
-   "Buses": "20261020",
-   "Rail, Tube & trams": "20261020"
-  },
-  "vehicles": 149501,
-  "bytes": 4377266
- },
- {
-  "id": "paris",
-  "name": "Paris",
-  "sub": "Île-de-France Mobilités",
-  "credit": "IDFM GTFS",
-  "date": "20261020",
-  "dates": {
-   "idfm": "20261020"
-  },
-  "vehicles": 123541,
-  "bytes": 3532209
+  "bytes": 2511524,
+  "tz": "America/New_York"
  },
  {
   "id": "berlin",
@@ -179,7 +71,8 @@
    "vbb": "20261020"
   },
   "vehicles": 50124,
-  "bytes": 1373304
+  "bytes": 1373304,
+  "tz": "Europe/Berlin"
  },
  {
   "id": "vienna",
@@ -191,44 +84,8 @@
    "wl": "20261020"
   },
   "vehicles": 35537,
-  "bytes": 730231
- },
- {
-  "id": "amsterdam",
-  "name": "Amsterdam",
-  "sub": "GVB, NS & more",
-  "credit": "OVapi / NL GTFS",
-  "date": "20261020",
-  "dates": {
-   "nl": "20261020"
-  },
-  "vehicles": 36276,
-  "bytes": 2506006
- },
- {
-  "id": "helsinki",
-  "name": "Helsinki",
-  "sub": "HSL",
-  "credit": "HSL GTFS",
-  "date": "20261020",
-  "dates": {
-   "hsl": "20261020"
-  },
-  "vehicles": 23445,
-  "bytes": 1017728
- },
- {
-  "id": "hong-kong",
-  "name": "Hong Kong",
-  "sub": "MTR, trams, buses & more",
-  "credit": "HK Transport Department GTFS, Hong Kong Community GTFS (ODbL)",
-  "date": "20261020",
-  "dates": {
-   "Buses & trams": "20261020",
-   "MTR & Light Rail": "20261020"
-  },
-  "vehicles": 150052,
-  "bytes": 2535986
+  "bytes": 730231,
+  "tz": "Europe/Vienna"
  },
  {
   "id": "melbourne",
@@ -243,6 +100,169 @@
    "SkyBus": "20261020"
   },
   "vehicles": 31707,
-  "bytes": 2074747
+  "bytes": 2074747,
+  "tz": "Australia/Melbourne"
+ },
+ {
+  "id": "toronto",
+  "name": "Toronto",
+  "sub": "TTC",
+  "credit": "TTC GTFS",
+  "date": "20261020",
+  "dates": {
+   "ttc": "20261020"
+  },
+  "vehicles": 40478,
+  "bytes": 1218003,
+  "tz": "America/Toronto"
+ },
+ {
+  "id": "chicago",
+  "name": "Chicago",
+  "sub": "CTA & Metra",
+  "credit": "CTA, Metra GTFS",
+  "date": "20261020",
+  "vehicles": 21124,
+  "bytes": 1379301,
+  "tz": "America/Chicago"
+ },
+ {
+  "id": "helsinki",
+  "name": "Helsinki",
+  "sub": "HSL",
+  "credit": "HSL GTFS",
+  "date": "20261020",
+  "dates": {
+   "hsl": "20261020"
+  },
+  "vehicles": 23445,
+  "bytes": 1017728,
+  "tz": "Europe/Helsinki"
+ },
+ {
+  "id": "los-angeles",
+  "name": "Los Angeles",
+  "sub": "LA Metro",
+  "credit": "LA Metro GTFS",
+  "date": "20261020",
+  "dates": {
+   "bus": "20261020",
+   "rail": "20261020"
+  },
+  "vehicles": 14593,
+  "bytes": 1553698,
+  "tz": "America/Los_Angeles"
+ },
+ {
+  "id": "boston",
+  "name": "Boston",
+  "sub": "MBTA",
+  "credit": "MBTA GTFS",
+  "date": "20261020",
+  "vehicles": 16334,
+  "bytes": 1096953,
+  "tz": "America/New_York"
+ },
+ {
+  "id": "philadelphia",
+  "name": "Philadelphia",
+  "sub": "SEPTA",
+  "credit": "SEPTA GTFS",
+  "date": "20261020",
+  "vehicles": 15414,
+  "bytes": 981053,
+  "tz": "America/New_York"
+ },
+ {
+  "id": "amsterdam",
+  "name": "Amsterdam",
+  "sub": "GVB, NS & more",
+  "credit": "OVapi / NL GTFS",
+  "date": "20261020",
+  "dates": {
+   "nl": "20261020"
+  },
+  "vehicles": 36276,
+  "bytes": 2506006,
+  "tz": "Europe/Amsterdam"
+ },
+ {
+  "id": "san-francisco",
+  "name": "San Francisco",
+  "sub": "Muni & BART",
+  "credit": "SFMTA, BART GTFS",
+  "date": "20260825",
+  "dates": {
+   "Muni": "20260825",
+   "BART": "20261020"
+  },
+  "vehicles": 10497,
+  "bytes": 800843,
+  "tz": "America/Los_Angeles"
+ },
+ {
+  "id": "san-diego",
+  "name": "San Diego",
+  "sub": "MTS",
+  "credit": "San Diego MTS GTFS",
+  "date": "20261020",
+  "dates": {
+   "mts": "20261020"
+  },
+  "vehicles": 7461,
+  "bytes": 756260,
+  "tz": "America/Los_Angeles"
+ },
+ {
+  "id": "miami",
+  "name": "Miami",
+  "sub": "Miami-Dade Transit",
+  "credit": "Miami-Dade Transit GTFS",
+  "date": "20261020",
+  "dates": {
+   "mdt": "20261020"
+  },
+  "vehicles": 9959,
+  "bytes": 865915,
+  "tz": "America/New_York"
+ },
+ {
+  "id": "atlanta",
+  "name": "Atlanta",
+  "sub": "MARTA",
+  "credit": "MARTA GTFS",
+  "date": "20261020",
+  "dates": {
+   "marta": "20261020"
+  },
+  "vehicles": 7820,
+  "bytes": 942823,
+  "tz": "America/New_York"
+ },
+ {
+  "id": "portland",
+  "name": "Portland",
+  "sub": "TriMet",
+  "credit": "TriMet GTFS",
+  "date": "20261020",
+  "dates": {
+   "trimet": "20261020"
+  },
+  "vehicles": 5774,
+  "bytes": 722683,
+  "tz": "America/Los_Angeles"
+ },
+ {
+  "id": "minneapolis",
+  "name": "Minneapolis",
+  "sub": "Metro Transit",
+  "credit": "Metro Transit GTFS",
+  "date": "20261020",
+  "dates": {
+   "metro": "20261020"
+  },
+  "vehicles": 8028,
+  "bytes": 1431903,
+  "tz": "America/Chicago"
  }
 ]

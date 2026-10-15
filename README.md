@@ -1,11 +1,11 @@
 # City Transit Map
 
 Every scheduled bus, train and tram in a city, animated from its open GTFS timetable. One page, one tab per city:
-**Philadelphia, New York, Boston, Chicago, Los Angeles, San Francisco, San Diego, Portland, Minneapolis, Atlanta, Miami, Toronto, London, Paris, Berlin, Vienna, Amsterdam, Helsinki, Hong Kong, Melbourne.**
+**Hong Kong, London, Paris, New York, Berlin, Vienna, Melbourne, Toronto, Chicago, Helsinki, Los Angeles, Boston, Philadelphia, Amsterdam, San Francisco, San Diego, Miami, Atlanta, Portland, Minneapolis** (tabs are ordered by rough annual ridership of each city's agencies, largest first; the ordering is approximate).
 
 Live: <https://thussenthan.github.io/city-transit-map/>
 
-Pan and zoom, scrub or play through the service day (starts at 08:00), filter by mode, and hover or click any dot for its route. Deep links work (`#paris`). Keys: `space` play/pause, `[` `]` previous/next city.
+Pan and zoom, scrub or play through the service day (it opens at the city's current local time), filter by mode, and hover or click any dot for its route. Deep links work (`#paris`). Keys: `space` play/pause, `[` `]` previous/next city.
 
 Inspired by the Vienna "every scheduled vehicle" map on r/MapPorn. `media/philadelphia.mp4` is a 10-second video version of the same idea.
 
