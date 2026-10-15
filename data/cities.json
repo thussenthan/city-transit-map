@@ -145,6 +145,19 @@
   "bytes": 1218003
  },
  {
+  "id": "london",
+  "name": "London",
+  "sub": "Tube, rail, trams & buses",
+  "credit": "Bus Open Data Service (DfT), Great Britain GTFS (Transitous/aubin.app)",
+  "date": "20261020",
+  "dates": {
+   "Buses": "20261020",
+   "Rail, Tube & trams": "20261020"
+  },
+  "vehicles": 149501,
+  "bytes": 4033259
+ },
+ {
   "id": "paris",
   "name": "Paris",
   "sub": "Île-de-France Mobilités",
@@ -207,7 +220,7 @@
  {
   "id": "hong-kong",
   "name": "Hong Kong",
-  "sub": "MTR, Light Rail, trams, buses & more",
+  "sub": "MTR, trams, buses & more",
   "credit": "HK Transport Department GTFS, Hong Kong Community GTFS (ODbL)",
   "date": "20261020",
   "dates": {

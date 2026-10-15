@@ -1,7 +1,7 @@
 # Transit in Motion
 
 Every scheduled bus, train and tram in a city, animated from its open GTFS timetable. One page, one tab per city:
-**Philadelphia, New York, Boston, Chicago, Los Angeles, San Francisco, San Diego, Portland, Minneapolis, Atlanta, Miami, Toronto, Paris, Berlin, Vienna, Amsterdam, Helsinki, Hong Kong, Melbourne.**
+**Philadelphia, New York, Boston, Chicago, Los Angeles, San Francisco, San Diego, Portland, Minneapolis, Atlanta, Miami, Toronto, London, Paris, Berlin, Vienna, Amsterdam, Helsinki, Hong Kong, Melbourne.**
 
 Live: <https://thussenthan.github.io/philly-transit-map/>
 
@@ -29,6 +29,7 @@ Vehicle positions are interpolated along each route's shape between scheduled st
 | Atlanta | MARTA |
 | Miami | Miami-Dade Transit |
 | Toronto | TTC |
+| London | Buses from the DfT Bus Open Data Service; Tube, Overground, Elizabeth line, DLR, Tramlink and National Rail from the Great Britain GTFS (Transitous), clipped to London with `tools/clip_gtfs.py` |
 | Paris | Île-de-France Mobilités (metro, RER/Transilien, tram, bus); no shapes in the feed so lines are stop-to-stop |
 | Berlin | VBB |
 | Vienna | Wiener Linien and regional operators (VOR) |
@@ -50,9 +51,9 @@ python3 tools/make_manifest.py tools/cities.json data
 python3 -m http.server   # the page needs http (it fetches data/*.bin)
 ```
 
-`FEEDS_DIR` holds the GTFS zips named in `tools/cities.json` (download URLs are the agencies' public feeds). `tools/make_video_philadelphia.py` makes the video.
+`FEEDS_DIR` holds the GTFS zips named in `tools/cities.json` (download URLs are the agencies' public feeds). `tools/clip_gtfs.py` cuts a huge feed down to one city without extracting it (used for London). `tools/make_video_philadelphia.py` makes the video.
 
 ## Credits
 
-Schedules: the agencies' open data (SEPTA, MTA, NJ Transit, MBTA, CTA, Metra, LA Metro, SFMTA, BART, San Diego MTS, TriMet, Metro Transit, MARTA, Miami-Dade Transit, TTC, Île-de-France Mobilités, VBB, Wiener Linien, OVapi, HSL, Hong Kong Transport Department, Hong Kong Community GTFS, Public Transport Victoria).
+Schedules: the agencies' open data (SEPTA, MTA, NJ Transit, MBTA, CTA, Metra, LA Metro, SFMTA, BART, San Diego MTS, TriMet, Metro Transit, MARTA, Miami-Dade Transit, TTC, Île-de-France Mobilités, VBB, Wiener Linien, OVapi, HSL, DfT Bus Open Data Service, Transitous/aubin.app (Great Britain), Hong Kong Transport Department, Hong Kong Community GTFS, Public Transport Victoria).
 Basemap: © OpenStreetMap contributors, via Overture Maps Foundation (ODbL).

@@ -327,6 +327,36 @@
    }
   ]
  },
+ "london": {
+  "name": "London",
+  "sub": "Tube, rail, trams & buses",
+  "center": [
+   -0.12,
+   51.51
+  ],
+  "home_km": [
+   34,
+   28
+  ],
+  "ext_km": [
+   38,
+   32
+  ],
+  "prefilter": true,
+  "credit": "Bus Open Data Service (DfT), Great Britain GTFS (Transitous/aubin.app)",
+  "feeds": [
+   {
+    "label": "bods",
+    "name": "Buses",
+    "path": "london/bods.zip"
+   },
+   {
+    "label": "rail",
+    "name": "Rail, Tube & trams",
+    "path": "london/rail"
+   }
+  ]
+ },
  "paris": {
   "name": "Paris",
   "sub": "Île-de-France Mobilités",
@@ -447,7 +477,7 @@
  },
  "hong-kong": {
   "name": "Hong Kong",
-  "sub": "MTR, Light Rail, trams, buses & more",
+  "sub": "MTR, trams, buses & more",
   "center": [
    114.17,
    22.34
