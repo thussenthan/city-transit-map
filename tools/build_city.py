@@ -228,23 +228,38 @@ class Router:
                 while p[-1] != a: p.append(int(pred[p[-1]]))
                 self.cache[k] = self.P[p[::-1]]
         return self.cache[k]
-    def route(self, pts):
+    def route(self, pts, strict=None, snap_px=None):
+        strict = self.strict if strict is None else strict; snap = self.snap_px if snap_px is None else snap_px
         d, idx = self.tree.query(pts)
         if self.pri_tree is not None:                                          # prefer the route's own track type when it is near enough
-            dp, ip = self.pri_tree.query(pts); use = dp <= self.snap_px
+            dp, ip = self.pri_tree.query(pts); use = dp <= snap
             d = np.where(use, dp, d); idx = np.where(use, self.pri_nodes[ip], idx)
-        ok = d <= self.snap_px                                                 # stop within snap_px of the network
+        ok = d <= snap                                                         # stop within snap_px of the network
         out = [pts[0]]
         for i in range(1, len(pts)):
             pa = self.path(idx[i - 1], idx[i]) if ok[i - 1] and ok[i] and idx[i - 1] != idx[i] else None
             self.stats["routed" if pa is not None else "same-node" if idx[i - 1] == idx[i] else "far-from-network" if not (ok[i - 1] and ok[i]) else "no-path"] += 1
             if pa is not None: out.extend(pa)
-            elif self.strict and np.hypot(*(pts[i] - pts[i - 1])) > 60.0: return None   # long unroutable jump: skip the trip
+            elif strict and np.hypot(*(pts[i] - pts[i - 1])) > 60.0: return None   # long unroutable jump: skip the trip
             out.append(pts[i])
         out = np.array(out); keep = np.r_[True, np.hypot(*np.diff(out, axis=0).T) > 1e-6]
         return out[keep]
 
-ROUTER = Router() if CFG.get("route_snap") and os.path.exists(os.path.join(WORK, "graph.npz")) else None
+ROUTER = Router(densify=5.0) if CFG.get("route_snap") and os.path.exists(os.path.join(WORK, "graph.npz")) else None
+
+def repair_hops(xy, thresh=60.0):
+    """Bus/coach shapes that are just a few far-apart points (a chord across the map): route each long hop along roads.
+    Returns None if a long hop cannot be routed, so the caller can drop that trip rather than draw a straight line."""
+    d = np.hypot(*np.diff(xy, axis=0).T)
+    if ROUTER is None or d.max() <= thresh: return xy
+    out = [xy[0]]
+    for i in range(1, len(xy)):
+        if d[i - 1] > thresh:
+            seg = ROUTER.route(np.array([xy[i - 1], xy[i]]), strict=True, snap_px=25.0)
+            if seg is None: return None
+            out.extend(seg[1:])
+        else: out.append(xy[i])
+    return np.array(out)
 RAIL_ROUTERS = {}
 def rail_router(rtype):
     """Track a route type may run on, with a cost penalty for neighbouring track types (outer Tube lines are mapped as
@@ -353,8 +368,10 @@ def process_feed(fspec):
                     xy = shp[pkey[0]]
                     ins = np.flatnonzero((xy[:, 0] > -IN) & (xy[:, 0] < WPX + IN) & (xy[:, 1] > -IN) & (xy[:, 1] < HPX + IN))
                     if len(ins) >= 2: xy = xy[max(ins[0] - 1, 0): ins[-1] + 2]
-                    geo_cache[pkey[0]] = simp(xy, 0.15)
+                    if ROUTER is not None and cls == 0: xy = repair_hops(xy)
+                    geo_cache[pkey[0]] = simp(xy, 0.15) if xy is not None else None
                 xy = geo_cache[pkey[0]]
+                if xy is None: pat_cache[pkey] = None; continue
                 gk = (label, pkey[0])
             else:
                 xy = sxy[list(si)]; gk = (label, "stops", pkey[1]); routed = False

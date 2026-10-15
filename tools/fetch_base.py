@@ -82,7 +82,7 @@ if cfg.get("route_snap"):                      # drivable road graph, used by bu
     print("routing graph", flush=True)
     rows = q(f"""SELECT class, ST_AsWKB(geometry) FROM read_parquet('{base}/theme=transportation/type=segment/*', hive_partitioning=1)
                  WHERE {where_box} AND subtype = 'road' AND class IN
-                 ('motorway','trunk','primary','secondary','tertiary','residential','unclassified','living_street','service')""")
+                 ({",".join(repr(x) for x in cfg.get("road_graph_classes", ["motorway","trunk","primary","secondary","tertiary","residential","unclassified","living_street","service"]))})""")
     lines, pen = [], []
     for cl, b in rows:
         g = wkb.loads(bytes(b))

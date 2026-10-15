@@ -66,6 +66,14 @@
   .tip small { display:block; color:var(--dim); margin-top:3px; }
   .foot { position:fixed; left:0; right:0; bottom:max(5px,env(safe-area-inset-bottom)); text-align:center; font-size:11px; color:var(--faint); pointer-events:none; padding:0 8px; }
   .foot a { color:inherit; pointer-events:auto; }
+  #hide { width:42px; height:34px; padding:0; font-size:15px; }
+  #restore { position:fixed; right:max(12px,env(safe-area-inset-right)); bottom:max(26px,calc(env(safe-area-inset-bottom) + 14px)); z-index:7; display:none;
+             padding:7px 14px; border-radius:99px; font-size:13px; font-weight:500; background:rgba(24,24,27,.55); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+             color:var(--dim); opacity:.55; }
+  #restore:hover { opacity:1; color:var(--fg); }
+  body.min nav, body.min .title, body.min .clock, body.min .panel, body.min .zoom, body.min .menu { display:none !important; }
+  body.min #restore { display:block; }
+  body.min .foot { display:none; }
   .zoom { position:fixed; right:max(14px,env(safe-area-inset-right)); top:50%; transform:translateY(-50%); display:grid; gap:6px; }
   .zoom button { width:38px; height:38px; padding:0; font-size:20px; background:var(--panel); }
   #loading { position:fixed; inset:0; display:none; place-items:center; background:rgba(30,30,33,.72); z-index:4; color:var(--dim); font-size:16px; pointer-events:none; }
@@ -94,6 +102,7 @@
       <option value="1">1×</option><option value="10">10×</option><option value="60">60×</option>
       <option value="120" selected>120×</option><option value="300">300×</option><option value="900">900×</option>
     </select>
+    <button id="hide" aria-label="Hide controls" title="Hide controls (H)">⌄</button>
   </div>
   <div class="row">
     <button class="chip" data-cls="1" aria-pressed="true"><i style="background:linear-gradient(90deg,#fff 0 33%,#bbb 33% 66%,#888 66%)"></i>Metro &amp; tram</button>
@@ -101,6 +110,7 @@
     <button class="chip" data-cls="0" aria-pressed="true"><i style="background:#6096eb"></i>Bus</button>
   </div>
 </div>
+<button id="restore" aria-label="Show controls" title="Show controls (H)">Show</button>
 <div id="loading"><span id="loadmsg">Loading…</span></div>
 <div class="foot">basemap © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, Overture Maps · <span id="credit">open GTFS timetables</span></div>
 
@@ -238,6 +248,7 @@ addEventListener("keydown", e => {
   else if (e.code === "Space") { e.preventDefault(); $("play").click(); }
   else if (e.key === "+" || e.key === "=") zoomAt(vw/2, vh/2, 1.4); else if (e.key === "-") zoomAt(vw/2, vh/2, 1/1.4);
   else if (e.key === "Escape") { selected = -1; closeMenu(); }
+  else if (e.key === "h" || e.key === "H") setMin(!document.body.classList.contains("min"));
 });
 
 // ---------- view ----------
@@ -346,6 +357,8 @@ const fmt = tt => { const m = Math.floor(tt / 60) % 1440; return String(Math.flo
 const timeEl = $("time"); timeEl.step = 30;
 function setTime(v, userSet) { t = v; if (userSet) loopStart = v; timeEl.value = t; $("clock").textContent = fmt(t); }
 timeEl.addEventListener("input", () => { scrubbed = true; setTime(+timeEl.value, true); });
+function setMin(on) { document.body.classList.toggle("min", on); closeMenu(); if (on) tip.style.display = "none"; }
+$("hide").addEventListener("click", () => setMin(true)); $("restore").addEventListener("click", () => setMin(false));
 $("play").addEventListener("click", () => { playing = !playing; $("play").textContent = playing ? "❚❚" : "▶"; });
 $("speed").addEventListener("change", e => speed = +e.target.value);
 document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {

@@ -89,7 +89,16 @@
    }
   ],
   "rail_snap": true,
-  "tz": "Europe/London"
+  "tz": "Europe/London",
+  "route_snap": true,
+  "road_graph_classes": [
+   "motorway",
+   "trunk",
+   "primary",
+   "secondary",
+   "tertiary",
+   "unclassified"
+  ]
  },
  "paris": {
   "name": "Paris",
