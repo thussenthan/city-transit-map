@@ -404,7 +404,7 @@ function drawDots() {
       const x = pos[2*k] * s + view.x, y = pos[2*k+1] * s + view.y;
       if (x < -10 || y < -10 || x > vw + 10 || y > vh + 10) continue;
       const r = (big ? 2.6 : 1.7) * zf;
-      ctx.globalAlpha = alpha[k] * (heat ? 0.5 : 1);
+      ctx.globalAlpha = alpha[k] * (heat ? 0.4 : 1);
       if (big) { ctx.fillStyle = "rgba(255,255,255,.16)"; ctx.beginPath(); ctx.arc(x, y, r * 2, 0, 6.2832); ctx.fill(); }
       ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
     }
@@ -415,9 +415,9 @@ function drawDots() {
 }
 
 // ---------- density heatmap ----------
-// Vehicles running per ~200 m cell (blurred), coloured against the city's peak: the cell value that the busiest 0.5% of
+// Vehicles running per ~320 m cell (blurred), coloured against the city's peak: the cell value that the busiest 0.5% of
 // covered cells reach at the city's peak moment of the day.
-const HC = 10, heatLUT = new Uint8ClampedArray(256 * 4);
+const HC = 16, heatLUT = new Uint8ClampedArray(256 * 4);
 for (let i = 0; i < 256; i++) {
   const v = i / 255, st = [[0, 0, 0, 0, 0], [.08, 40, 40, 150, 90], [.3, 40, 150, 190, 150], [.55, 120, 200, 90, 180], [.78, 250, 190, 50, 205], [1, 245, 60, 50, 225]];
   let j = 1; while (j < st.length - 1 && v > st[j][0]) j++;
@@ -444,7 +444,7 @@ function heatCalibrate() {                              // find the peak moment,
   for (let tt = C.tMin; tt <= C.tMax; tt += 600) { let n = 0; for (let k = 0; k < NV; k++) if (tt >= vs[k].t0 && tt <= vs[k].t1) n++; if (n > bestN) { bestN = n; bestT = tt; } }
   heatSetup(); hGrid.a.fill(0); const p = new Float32Array(2), h = new Float32Array(2);
   for (let k = 0; k < NV; k++) { const v = vs[k]; if (bestT < v.t0 || bestT > v.t1) continue; locate(v, bestT, 0, p, h); heatAccumulate(p[0], p[1], 1); }
-  heatBlur(); heatBlur();
+  heatBlur(); heatBlur(); heatBlur();
   const vals = []; for (const x of hGrid.a) if (x > 0.02) vals.push(x);
   vals.sort((x, y) => x - y);
   C.heatScale = Math.max(0.5, vals.length ? vals[Math.floor(vals.length * 0.995)] : 1); C.heatPeak = { t: bestT, n: bestN };
@@ -454,7 +454,7 @@ function drawHeat() {
   if (!C.heatScale) heatCalibrate();
   heatSetup(); const { gw, gh, a } = hGrid, { pos, live, alpha, NV, vs } = C; a.fill(0);
   for (let k = 0; k < NV; k++) if (live[k] && alpha[k] > 0) heatAccumulate(pos[2*k], pos[2*k+1], alpha[k]);
-  heatBlur(); heatBlur();
+  heatBlur(); heatBlur(); heatBlur();
   const d = hImg.data, inv = 255 / C.heatScale;
   for (let i = 0; i < a.length; i++) {
     const q = Math.min(255, Math.pow(Math.min(1, a[i] / C.heatScale), 0.8) * 255 | 0) * 4;
