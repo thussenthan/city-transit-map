@@ -1,7 +1,7 @@
 # City Transit Map
 
 Every scheduled bus, train and tram in a city, animated from its open GTFS timetable. One page, one tab per city:
-**Tokyo, Hong Kong, London, Paris, Seoul, New York, Cairo, Taipei, Berlin, Vienna, Melbourne, Toronto, Jakarta, Chicago, Helsinki, Los Angeles, Boston, Philadelphia, Amsterdam, San Francisco, San Diego, Miami, Atlanta, Portland, Minneapolis** (tabs are ordered by rough annual ridership of each city's agencies, largest first; the ordering is approximate). The page opens on New York; the first city opens at its current local time, and switching tabs doesn't touch the clock (it keeps running from wherever it was).
+**Tokyo, Hong Kong, London, Paris, Seoul, New York, Cairo, Taipei, Berlin, Vienna, Melbourne, Toronto, Chicago, Helsinki, Los Angeles, Boston, Philadelphia, Amsterdam, San Francisco** (tabs are ordered by rough annual ridership of each city's agencies, largest first; the ordering is approximate). The page opens on New York; the first city opens at its current local time, and switching tabs doesn't touch the clock (it keeps running from wherever it was).
 
 Live: <https://thussenthan.github.io/city-transit-map/>
 
@@ -25,16 +25,10 @@ Vehicle positions are interpolated along each route's shape between scheduled st
 | Chicago | CTA + Metra |
 | Los Angeles | LA Metro bus and rail |
 | San Francisco | SFMTA Muni (feed published only through Aug 2026, so Muni shows Tue 2026-08-25) + BART |
-| San Diego | MTS |
-| Portland | TriMet |
-| Minneapolis | Metro Transit |
-| Atlanta | MARTA |
-| Miami | Miami-Dade Transit |
 | Toronto | TTC |
 | Tokyo | Everything open for the Kanto area: JR East, Tokyo Metro, Toei and ~40 private railways (community-built GTFS, mkuran.pl); Shinkansen and JR limited-express trains, Yurikamome, Disney Resort Line and Yokohama Subway (JR/JBB national feed, snapped to real track); Toei Bus; and ~40 municipal community-bus feeds (GTFS Data Repository Japan). The big private bus companies publish only behind keys, so they're missing |
 | Seoul | Subway only, from the KTDB Korea GTFS (no shapes in the feed, so routes are snapped to real track from Overture) |
 | Taipei | Taiwan TDX GTFS mirror, clipped to Taipei: MRT, rail and buses |
-| Jakarta | KRL Commuter Line only, snapped to track |
 | Cairo | Cairo Metro and Cairo's buses/paratransit (Transport for Cairo; both feeds are from 2025, so the page shows their own dates) |
 | London | Buses from the DfT Bus Open Data Service; Tube, Overground, Elizabeth line, DLR, Tramlink and National Rail from the Great Britain GTFS (Transitous), clipped to London with `tools/clip_gtfs.py`; that feed's rail shapes are stop-to-stop chords, so rail/Tube/tram routes are snapped to real track geometry from Overture |
 | Paris | Île-de-France Mobilités (metro, RER/Transilien, tram, bus) |
@@ -62,5 +56,5 @@ python3 -m http.server   # the page needs http (it fetches data/*.bin)
 
 ## Credits
 
-Schedules: the agencies' open data (Tokyo rail GTFS by Mikołaj Kuranowski, KTDB, Taiwan TDX, KAI Commuter, Transport for Cairo, SEPTA, MTA, NJ Transit, MBTA, CTA, Metra, LA Metro, SFMTA, BART, San Diego MTS, TriMet, Metro Transit, MARTA, Miami-Dade Transit, TTC, Île-de-France Mobilités, VBB, Wiener Linien, OVapi, HSL, DfT Bus Open Data Service, Transitous/aubin.app (Great Britain), Hong Kong Transport Department, Hong Kong Community GTFS, Public Transport Victoria).
+Schedules: the agencies' open data (Tokyo rail GTFS by Mikołaj Kuranowski, KTDB, Taiwan TDX, Transport for Cairo, SEPTA, MTA, NJ Transit, MBTA, CTA, Metra, LA Metro, SFMTA, BART MTS, TTC, Île-de-France Mobilités, VBB, Wiener Linien, OVapi, HSL, DfT Bus Open Data Service, Transitous/aubin.app (Great Britain), Hong Kong Transport Department, Hong Kong Community GTFS, Public Transport Victoria).
 Basemap: © OpenStreetMap contributors, via Overture Maps Foundation (ODbL).

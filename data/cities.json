@@ -174,19 +174,6 @@
   "tz": "America/Toronto"
  },
  {
-  "id": "jakarta",
-  "name": "Jakarta",
-  "sub": "KRL Commuter Line",
-  "credit": "KAI Commuter GTFS (open-krl)",
-  "date": "20261020",
-  "dates": {
-   "krl": "20261020"
-  },
-  "vehicles": 1125,
-  "bytes": 1024540,
-  "tz": "Asia/Jakarta"
- },
- {
   "id": "chicago",
   "name": "Chicago",
   "sub": "CTA & Metra",
@@ -279,70 +266,5 @@
   "vehicles": 10497,
   "bytes": 900038,
   "tz": "America/Los_Angeles"
- },
- {
-  "id": "san-diego",
-  "name": "San Diego",
-  "sub": "MTS",
-  "credit": "San Diego MTS GTFS",
-  "date": "20261020",
-  "dates": {
-   "mts": "20261020"
-  },
-  "vehicles": 7461,
-  "bytes": 861791,
-  "tz": "America/Los_Angeles"
- },
- {
-  "id": "miami",
-  "name": "Miami",
-  "sub": "Miami-Dade Transit",
-  "credit": "Miami-Dade Transit GTFS",
-  "date": "20261020",
-  "dates": {
-   "mdt": "20261020"
-  },
-  "vehicles": 9959,
-  "bytes": 958667,
-  "tz": "America/New_York"
- },
- {
-  "id": "atlanta",
-  "name": "Atlanta",
-  "sub": "MARTA",
-  "credit": "MARTA GTFS",
-  "date": "20261020",
-  "dates": {
-   "marta": "20261020"
-  },
-  "vehicles": 7820,
-  "bytes": 1065402,
-  "tz": "America/New_York"
- },
- {
-  "id": "portland",
-  "name": "Portland",
-  "sub": "TriMet",
-  "credit": "TriMet GTFS",
-  "date": "20261020",
-  "dates": {
-   "trimet": "20261020"
-  },
-  "vehicles": 5774,
-  "bytes": 832930,
-  "tz": "America/Los_Angeles"
- },
- {
-  "id": "minneapolis",
-  "name": "Minneapolis",
-  "sub": "Metro Transit",
-  "credit": "Metro Transit GTFS",
-  "date": "20261020",
-  "dates": {
-   "metro": "20261020"
-  },
-  "vehicles": 8028,
-  "bytes": 1573682,
-  "tz": "America/Chicago"
  }
 ]
