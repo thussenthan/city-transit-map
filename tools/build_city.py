@@ -127,7 +127,7 @@ def route_class(rtype):
     if t in (4, 6) or 1000 <= t < 1400: return -1              # ferry / gondola: skipped
     return 0
 
-DEFAULT = {0: "987CFF", 1: "E6E6E6", 2: "A0F04C"}          # bus = violet, regional rail = lime: hues metro lines rarely use
+DEFAULT = {0: "987CFF", 1: "E6E6E6", 2: "9EB08A"}          # bus = violet, regional rail = muted sage: hues metro lines rarely use
 def pick_color(cls, c):
     if cls != 1: return DEFAULT[cls]
     c = (c or "").strip().lstrip("#").upper()
@@ -287,6 +287,7 @@ def rail_router(rtype):
 shapes, shape_meta, routes, route_idx, heads, head_idx = [], {}, [], {}, [], {}
 veh, T, D = [], [], []
 shape_xy, vrec = {}, []                                     # raw polylines (px) and vehicles awaiting final encoding
+pats, pat_ids = [], {}                                      # per trip pattern: (shape index, stop distances along it)
 agencies, dates_used, feed_dates = [], [], []
 IN = 40.0                                                   # px margin around the world for "inside"
 
@@ -431,9 +432,12 @@ def process_feed(fspec):
                 offs += [x - tt[0] for x in range(s0, s1, hw)]
         elif freq_map and not tid in freq_map and False: pass
         dq = np.rint(dd * U).astype(np.int64)
+        pk = (label, pkey)
+        if pk not in pat_ids: pat_ids[pk] = len(pats); pats.append((shape_idx[gk], dist))
+        pid = pat_ids[pk]
         for off in offs:
             ts_i = np.rint(tt + off).astype(np.int64)
-            vrec.append((shape_idx[gk], route_idx[rk], head_idx[hs], ts_i, dq))
+            vrec.append((shape_idx[gk], route_idx[rk], head_idx[hs], ts_i, dq, pid))
             made += 1
     print(f"  [{label}] vehicles made: {made} (trips outside extent skipped: {skipped}), {time.time() - t0:.0f}s", flush=True)
 
@@ -487,10 +491,15 @@ def bundle_lanes():
 lane_maps = bundle_lanes()
 for i in range(len(shapes)):                                # every other shape is encoded as-is
     if shapes[i][2] is None: shapes[i][2] = enc(shape_xy[i])
-for si, ri, hi, ts_i, dq in vrec:
+PC, PD = [], []                                             # stop positions per pattern (count, delta-coded distances)
+for psi, pdist in pats:
+    pq = np.rint(np.asarray(pdist) * U).astype(np.int64)
+    if psi in lane_maps: so, sn = lane_maps[psi]; pq = np.rint(np.interp(pq / U, so, sn) * U).astype(np.int64)
+    pq = np.maximum.accumulate(pq); PC.append(len(pq)); PD.extend(np.diff(pq, prepend=0).tolist())
+for si, ri, hi, ts_i, dq, pid in vrec:
     if si in lane_maps:
         so, sn = lane_maps[si]; dq = np.rint(np.interp(dq / U, so, sn) * U).astype(np.int64)
-    veh.extend([si, ri, hi, len(T), len(ts_i)])
+    veh.extend([si, ri, hi, len(T), len(ts_i), pid])
     T.extend(np.diff(ts_i, prepend=0).tolist()); D.extend(np.diff(dq, prepend=0).tolist())
 print(f"  lanes applied to {len(lane_maps)} metro/rail shapes", flush=True)
 
@@ -499,13 +508,13 @@ for k_, r_ in RAIL_ROUTERS.items():
     for a_, b_ in r_.failed[:12]: print("    unroutable", [round(c, 4) for c in to_ll(*r_.P[a_])], "->", [round(c, 4) for c in to_ll(*r_.P[b_])], "chord km %.1f" % (np.hypot(*(r_.P[a_] - r_.P[b_])) * MPP / 1000), flush=True)
 if ROUTER is not None: print("  road router", dict(ROUTER.stats), flush=True)
 payload = {"id": args.city, "u": U, "base": base, "shapes": shapes, "routes": routes, "heads": heads,
-           "veh": veh, "T": T, "D": D, "view": {"w": WPX, "h": HPX},
+           "veh": veh, "T": T, "D": D, "PC": PC, "PD": PD, "view": {"w": WPX, "h": HPX},
            "home": {"cx": WPX / 2, "cy": HPX / 2, "w": CFG["home_km"][0] * 1000 / MPP, "h": CFG["home_km"][1] * 1000 / MPP},
            "date": Counter(dates_used).most_common(1)[0][0] if dates_used else "", "dates": dict(feed_dates)}
 raw = json.dumps(payload, separators=(",", ":")).encode()
 gz = gzip.compress(raw, 9)
 open(os.path.join(args.out, args.city + ".bin"), "wb").write(gz)
 meta = {"id": args.city, "name": CFG["name"], "sub": CFG.get("sub", ""), "credit": CFG.get("credit", ""),
-        "date": payload["date"], "dates": payload["dates"], "vehicles": len(veh) // 5, "bytes": len(gz)}
+        "date": payload["date"], "dates": payload["dates"], "vehicles": len(veh) // 6, "bytes": len(gz)}
 json.dump(meta, open(os.path.join(args.out, args.city + ".meta.json"), "w"))
-print(f"DONE {args.city}: {len(veh) // 5} vehicles, {len(T)} points, raw {len(raw) / 1e6:.1f} MB, gz {len(gz) / 1e6:.2f} MB, {time.time() - t_start:.0f}s", flush=True)
+print(f"DONE {args.city}: {len(veh) // 6} vehicles, {len(T)} points, raw {len(raw) / 1e6:.1f} MB, gz {len(gz) / 1e6:.2f} MB, {time.time() - t_start:.0f}s", flush=True)

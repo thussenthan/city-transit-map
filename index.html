@@ -106,7 +106,7 @@
   </div>
   <div class="row">
     <button class="chip" data-cls="1" aria-pressed="true"><i style="background:linear-gradient(90deg,#fff 0 33%,#bbb 33% 66%,#888 66%)"></i>Metro &amp; tram</button>
-    <button class="chip" data-cls="2" aria-pressed="true"><i style="background:#a0f04c"></i>Regional rail</button>
+    <button class="chip" data-cls="2" aria-pressed="true"><i style="background:#9eb08a"></i>Regional rail</button>
     <button class="chip" data-cls="0" aria-pressed="true"><i style="background:#987cff"></i>Bus</button>
   </div>
 </div>
@@ -159,14 +159,16 @@ function build(data) {
     for (let i = 1; i < n; i++) cum[i] = cum[i-1] + Math.hypot(pts[2*i] - pts[2*i-2], pts[2*i+1] - pts[2*i-1]);
     return { cls, color, pts, cum, n, path: pathOf(pts, false) };
   });
-  const V = data.veh, NV = V.length / 5; c.vs = new Array(NV);
+  const pats = []; { let po = 0;
+    for (const n of data.PC) { const sd = new Float32Array(n); let q = 0; for (let i = 0; i < n; i++) { q += data.PD[po + i]; sd[i] = q / U; } pats.push(sd); po += n; } }
+  const V = data.veh, NV = V.length / 6; c.vs = new Array(NV);
   for (let k = 0; k < NV; k++) {
-    const off = V[5*k+3], cnt = V[5*k+4], tt = new Int32Array(cnt), dd = new Float32Array(cnt);
+    const off = V[6*k+3], cnt = V[6*k+4], tt = new Int32Array(cnt), dd = new Float32Array(cnt);
     let a = 0, b = 0;
     for (let i = 0; i < cnt; i++) { a += data.T[off+i]; b += data.D[off+i]; tt[i] = a; dd[i] = b / U; }
-    c.vs[k] = { shape: c.shapes[V[5*k]], route: V[5*k+1], head: V[5*k+2], t: tt, d: dd, t0: tt[0], t1: tt[cnt-1] };
+    c.vs[k] = { shape: c.shapes[V[6*k]], route: V[6*k+1], head: V[6*k+2], pat: pats[V[6*k+5]], t: tt, d: dd, t0: tt[0], t1: tt[cnt-1] };
   }
-  c.NV = NV; c.pos = new Float32Array(NV * 2); c.live = new Uint8Array(NV); c.alpha = new Float32Array(NV);
+  c.NV = NV; c.pos = new Float32Array(NV * 2); c.live = new Uint8Array(NV); c.alpha = new Float32Array(NV); c.hd = new Float32Array(NV * 2);
   c.routes = data.routes; c.heads = data.heads;
   const byColor = {};
   for (const s of c.shapes) (byColor[s.cls + s.color] ||= { cls: s.cls, color: s.color, path: new Path2D() }).path.addPath(s.path);
@@ -174,7 +176,7 @@ function build(data) {
   c.tMin = Infinity; c.tMax = 0;
   for (const v of c.vs) { c.tMin = Math.min(c.tMin, v.t0); c.tMax = Math.max(c.tMax, v.t1); }
   c.tMin = Math.floor(c.tMin / 900) * 900; c.tMax = Math.ceil(c.tMax / 900) * 900; c.tEnd = Math.max(c.tMax, 86400);
-  data.base = data.shapes = data.veh = data.T = data.D = null;   // free the raw arrays
+  data.base = data.shapes = data.veh = data.T = data.D = data.PC = data.PD = null;   // free the raw arrays
   return c;
 }
 function loadCity(id) {
@@ -295,61 +297,100 @@ function drawStatic() {
   for (const g of C.groups) {
     if (!show[g.cls]) continue;
     if (g.cls === 0) { c.strokeStyle = "rgba(152,124,255,.58)"; c.lineWidth = 1.1 * zf * px; }
-    else if (g.cls === 2) { c.strokeStyle = "rgba(160,240,76,.85)"; c.lineWidth = 1.7 * zf * px; }
+    else if (g.cls === 2) { c.strokeStyle = "rgba(158,176,138,.8)"; c.lineWidth = 1.7 * zf * px; }
     else { c.strokeStyle = "#" + g.color; c.lineWidth = 2.1 * zf * px; }
     c.stroke(g.path);
   }
 }
 
 // ---------- vehicles ----------
-function locate(v, tt) {
+const TRAMP = [14, 18, 28];                           // seconds of schedule time spent accelerating / braking, by class (bus, metro-tram, rail)
+function easeDist(v, d, vlin) {
+  // Vehicles cross every stop at their scheduled time, but slow to a halt into it and pull away out of it: the linear progress x
+  // inside a stop-to-stop interval is warped by a cruise speed with cosine ramps at both ends.
+  const S = v.pat, n = S ? S.length : 0;
+  if (n < 2 || d <= S[0] || d >= S[n - 1] || vlin <= 0) return d;
+  let lo = 0, hi = n - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (S[m] <= d) lo = m; else hi = m; }
+  const a = S[lo], L = S[hi] - a;
+  if (L < 1) return d;
+  const x = d - a, R = Math.min(vlin * TRAMP[v.shape.cls], 0.45 * L);
+  if (R < 0.4) return d;
+  const c = L / (L - R), K = R / (2 * Math.PI);
+  let H;
+  if (x < R) H = x / 2 - K * Math.sin(Math.PI * x / R);
+  else if (x <= L - R) H = R / 2 + (x - R);
+  else { const tau = x - (L - R); H = R / 2 + (L - 2 * R) + tau / 2 + K * Math.sin(Math.PI * tau / R); }
+  return a + c * H;
+}
+function locate(v, tt, k, pos, hd) {
   const ts = v.t; let lo = 0, hi = ts.length - 1;
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (ts[m] <= tt) lo = m; else hi = m; }
   const span = ts[hi] - ts[lo], f = span > 0 ? (tt - ts[lo]) / span : 0;
-  const d = v.d[lo] + (v.d[hi] - v.d[lo]) * f, sh = v.shape, cum = sh.cum;
+  let d = v.d[lo] + (v.d[hi] - v.d[lo]) * f;
+  if (span > 0) d = easeDist(v, d, (v.d[hi] - v.d[lo]) / span);
+  const sh = v.shape, cum = sh.cum;
   let a = 0, b = sh.n - 1;
   while (b - a > 1) { const m = (a + b) >> 1; if (cum[m] <= d) a = m; else b = m; }
   const seg = cum[b] - cum[a], g = seg > 0 ? Math.min(1, Math.max(0, (d - cum[a]) / seg)) : 0;
-  return [sh.pts[2*a] + (sh.pts[2*b] - sh.pts[2*a]) * g, sh.pts[2*a+1] + (sh.pts[2*b+1] - sh.pts[2*a+1]) * g];
+  const ax = sh.pts[2*a], ay = sh.pts[2*a+1], bx = sh.pts[2*b], by = sh.pts[2*b+1];
+  pos[2*k] = ax + (bx - ax) * g; pos[2*k+1] = ay + (by - ay) * g;
+  const dx = bx - ax, dy = by - ay, nn = Math.hypot(dx, dy);
+  if (nn > 1e-6) { hd[2*k] = dx / nn; hd[2*k+1] = dy / nn; }       // keep the previous heading on zero-length hops
 }
 let nLive = 0;
 function updateVehicles() {
   nLive = 0; if (!C) return;
-  const { vs, pos, live, alpha, NV } = C;
+  const { vs, pos, live, alpha, NV, hd } = C;
   const F = Math.max(45, speed * 0.6);                // fade window in timetable seconds (~0.6 s of screen time)
   for (let k = 0; k < NV; k++) {
     const v = vs[k];
     if (t < v.t0 - F || t > v.t1 + F || !show[v.shape.cls]) { live[k] = 0; continue; }
     const inside = t >= v.t0 && t <= v.t1;
-    const p = locate(v, inside ? t : t < v.t0 ? v.t0 : v.t1);     // wait at the first/last stop while fading
-    pos[2*k] = p[0]; pos[2*k+1] = p[1]; live[k] = 1;
+    locate(v, inside ? t : t < v.t0 ? v.t0 : v.t1, k, pos, hd);     // wait at the first/last stop while fading
+    live[k] = 1;
     alpha[k] = inside ? 1 : 1 - (t < v.t0 ? v.t0 - t : t - v.t1) / F;
     if (inside) nLive++;
   }
 }
+const CAR = [{ len: 7, w: 2.4, cars: 1, gap: 0 }, { len: 15.8, w: 2.5, cars: 3, gap: 1 }, { len: 22.2, w: 2.7, cars: 4, gap: 1 }];   // screen px at zoom factor 1
 function drawDots() {
   if (!C) return;
-  const { vs, pos, live, alpha, NV } = C, s = view.s, zf = Math.min(2.4, Math.max(0.85, Math.pow(s, 0.45)));
+  const { vs, pos, live, alpha, hd, NV } = C, s = view.s, zf = Math.min(2.4, Math.max(0.85, Math.pow(s, 0.45)));
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   if (selected >= 0 && live[selected]) {
     ctx.save(); ctx.setTransform(dpr*s, 0, 0, dpr*s, dpr*view.x, dpr*view.y);
     ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 2.4 / s; ctx.lineJoin = "round"; ctx.stroke(vs[selected].shape.path); ctx.restore();
   }
-  for (const pass of [0, 1]) {
-    for (let k = 0; k < NV; k++) {
-      if (!live[k]) continue;
-      const big = vs[k].shape.cls > 0; if ((pass === 1) !== big) continue;
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  for (let cls = 0; cls < 3; cls++) {                           // buses first, rail on top
+    const P = CAR[cls], w = P.w * zf, len = P.len * zf, gap = P.gap * zf, half = Math.max(0, (len - w) / 2);
+    const carLen = (len - (P.cars - 1) * gap) / P.cars, dash = P.cars > 1 ? [Math.max(0.3, carLen - w), gap + w] : [];
+    const faded = []; let any = false;
+    ctx.beginPath();
+    for (let k = 0; k < NV; k++) {                              // one path for every fully visible vehicle of this class
+      if (!live[k] || vs[k].shape.cls !== cls) continue;
       const x = pos[2*k] * s + view.x, y = pos[2*k+1] * s + view.y;
-      if (x < -10 || y < -10 || x > vw + 10 || y > vh + 10) continue;
-      const r = (big ? 2.6 : 1.7) * zf;
-      ctx.globalAlpha = alpha[k];
-      if (big) { ctx.fillStyle = "rgba(255,255,255,.16)"; ctx.beginPath(); ctx.arc(x, y, r * 2, 0, 6.2832); ctx.fill(); }
-      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
+      if (x < -20 || y < -20 || x > vw + 20 || y > vh + 20) continue;
+      if (alpha[k] < 1) { faded.push(k); continue; }
+      const hx = hd[2*k] * half, hy = hd[2*k+1] * half;
+      ctx.moveTo(x - hx, y - hy); ctx.lineTo(x + hx, y + hy); any = true;
     }
+    if (any) {
+      ctx.setLineDash([]);
+      if (cls > 0) { ctx.lineWidth = w + 3.4; ctx.strokeStyle = "rgba(255,255,255,.15)"; ctx.stroke(); }   // soft glow under trains
+      ctx.setLineDash(dash); ctx.lineWidth = w; ctx.strokeStyle = "#fff"; ctx.stroke();
+    }
+    ctx.setLineDash(dash); ctx.lineWidth = w; ctx.strokeStyle = "#fff";
+    for (const k of faded) {                                   // vehicles fading in/out
+      const x = pos[2*k] * s + view.x, y = pos[2*k+1] * s + view.y, hx = hd[2*k] * half, hy = hd[2*k+1] * half;
+      ctx.globalAlpha = alpha[k]; ctx.beginPath(); ctx.moveTo(x - hx, y - hy); ctx.lineTo(x + hx, y + hy); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
   }
-  ctx.globalAlpha = 1;
+  ctx.setLineDash([]);
   for (const k of [hover, selected]) if (k >= 0 && live[k]) {
-    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(pos[2*k] * s + view.x, pos[2*k+1] * s + view.y, 8, 0, 6.2832); ctx.stroke(); }
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(pos[2*k] * s + view.x, pos[2*k+1] * s + view.y, 9, 0, 6.2832); ctx.stroke(); }
 }
 
 // ---------- UI ----------
@@ -400,7 +441,7 @@ const tip = $("tip");
 function updateTip() {
   const k = C && selected >= 0 && C.live[selected] ? selected : hover;
   if (!C || k < 0 || !C.live[k]) { tip.style.display = "none"; return; }
-  const v = C.vs[k], r = C.routes[v.route], hd = C.heads[v.head], col = v.shape.cls === 0 ? "#6a4fd8" : v.shape.cls === 2 ? "#5d9a1f" : "#" + v.shape.color;
+  const v = C.vs[k], r = C.routes[v.route], hd = C.heads[v.head], col = v.shape.cls === 0 ? "#6a4fd8" : v.shape.cls === 2 ? "#6c7f58" : "#" + v.shape.color;
   const kind = ["Bus", "Metro / tram", "Regional rail"][v.shape.cls];
   const txt = c => c.replace(/[&<>]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
   const dark = v.shape.cls === 1 && parseInt(v.shape.color, 16) > 0xb0b0b0;
@@ -430,6 +471,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+window.__app = { easeDist, view, get city() { return C; }, get t() { return t; }, set t(v) { t = v; }, dirty() { staticDirty = true; }, get size() { return [vw, vh]; } };   // debugging handle
 
 (async () => {
   try { manifest = await (await fetch("data/cities.json")).json(); }

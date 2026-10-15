@@ -1,1 +1,1 @@
-{"id": "melbourne", "name": "Melbourne", "sub": "PTV trains, trams & buses", "credit": "Public Transport Victoria GTFS", "date": "20261020", "dates": {"Train": "20261020", "Tram": "20261020", "Bus": "20261020", "SkyBus": "20261020"}, "vehicles": 31707, "bytes": 2107343}
+{"id": "melbourne", "name": "Melbourne", "sub": "PTV trains, trams & buses", "credit": "Public Transport Victoria GTFS", "date": "20261020", "dates": {"Train": "20261020", "Tram": "20261020", "Bus": "20261020", "SkyBus": "20261020"}, "vehicles": 31707, "bytes": 2189741}

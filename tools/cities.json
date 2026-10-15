@@ -480,7 +480,16 @@
     "path": "cairo/bus.zip"
    }
   ],
-  "rail_snap": true
+  "rail_snap": true,
+  "route_snap": true,
+  "road_graph_classes": [
+   "motorway",
+   "trunk",
+   "primary",
+   "secondary",
+   "tertiary",
+   "unclassified"
+  ]
  },
  "taipei": {
   "name": "Taipei",
