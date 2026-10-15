@@ -97,7 +97,13 @@ const st = document.createElement("canvas"), sctx = st.getContext("2d");
 let dpr = 1, vw = 0, vh = 0;
 const view = { s: 1, x: 0, y: 0 };
 const show = { 0: true, 1: true, 2: true };
-let t = 8 * 3600, loopStart = t, playing = true, speed = 120, loop = false, scrubbed = false;
+let t = 8 * 3600, loopStart = t, playing = true, speed = 120, loop = false, scrubbed = false, curTz = null;
+function tzOffset(tz) {                               // seconds east of UTC right now (DST-aware)
+  try { const d = new Date(), p = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric",
+      hour: "numeric", minute: "numeric", second: "numeric" }).formatToParts(d); const g = k => +p.find(x => x.type === k).value;
+    return Math.round((Date.UTC(g("year"), g("month") - 1, g("day"), g("hour"), g("minute"), g("second")) - Math.floor(d.getTime() / 1000) * 1000) / 1000); }
+  catch (e) { return -new Date().getTimezoneOffset() * 60; }
+}
 function nowIn(tz) {                                  // seconds since local midnight in a city's time zone
   try { const p = new Intl.DateTimeFormat("en-GB", { timeZone: tz, hourCycle: "h23", hour: "2-digit", minute: "2-digit", second: "2-digit" }).formatToParts(new Date());
     const g = k => +p.find(x => x.type === k).value; return g("hour") * 3600 + g("minute") * 60 + g("second"); }
@@ -153,8 +159,9 @@ function loadCity(id) {
 
 // ---------- tabs ----------
 function fmtDate(d) { if (!d) return ""; const dt = new Date(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8));
-  return dt.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }); }
-function fmtShort(d) { const dt = new Date(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8)); return dt.toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
+  return dt.toLocaleDateString("en-US", dt.getFullYear() === new Date().getFullYear() ? { weekday: "long", month: "short", day: "numeric" }
+    : { weekday: "long", month: "short", day: "numeric", year: "numeric" }); }
+function fmtShort(d) { const dt = new Date(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8)); return dt.toLocaleDateString("en-US", dt.getFullYear() === new Date().getFullYear() ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" }); }
 async function select(id, replace) {
   const m = manifest.find(x => x.id === id) || manifest[0]; id = m.id;
   const token = ++loadToken;
@@ -175,9 +182,12 @@ async function select(id, replace) {
     ? "Timetables: " + Object.entries(ds).map(([k, v]) => k + " " + fmtShort(v)).join(", ")
     : fmtDate(c.date) + " timetable");
   timeEl.min = c.tMin; timeEl.max = c.tMax;
-  let start = scrubbed ? t : nowIn(m.tz);                // open at the city's current local time unless the user picked a time
+  // first load: the city's current local time. After that, keep the same moment in the world: minutes stay put and the hour
+  // shifts by the time-zone difference between the two cities.
+  let start = curTz === null ? nowIn(m.tz) : t + tzOffset(m.tz) - tzOffset(curTz);
+  start = ((start % 86400) + 86400) % 86400;
   if (start < c.tMin && start + 86400 <= c.tMax) start += 86400;        // after midnight: late-night trips run past 24:00
-  setTime(Math.min(Math.max(start, c.tMin), c.tMax), false);
+  setTime(Math.min(Math.max(start, c.tMin), c.tMax), false); curTz = m.tz;
   homeView(); staticDirty = true;
 }
 function makeTabs() {
@@ -382,7 +392,8 @@ requestAnimationFrame(frame);
   try { manifest = await (await fetch("data/cities.json")).json(); }
   catch (e) { $("loading").classList.add("on"); $("loadmsg").textContent = "Couldn't load data/cities.json. Serve this folder over http (e.g. python3 -m http.server)."; return; }
   makeTabs();
-  select(location.hash.slice(1) || manifest[0].id, true);
+  const start = manifest.some(x => x.id === "new-york") ? "new-york" : manifest[0].id;      // open on New York by default
+  select(location.hash.slice(1) || start, true);
 })();
 })();
 </script>

@@ -244,6 +244,7 @@ def process_feed(fspec):
     d = feed_dir(spec, fspec.get("inner")); t0 = time.time()
     rts = csv(d, "routes.txt"); trips = csv(d, "trips.txt"); stops = csv(d, "stops.txt")
     if fspec.get("agencies"): rts = rts[rts.agency_id.isin(fspec["agencies"])]      # use only some agencies from a mixed feed
+    if fspec.get("route_types"): rts = rts[rts.route_type.isin(fspec["route_types"])]  # ...or only some raw route_type values
     date, on, counts = pick_date(d, trips)
     print(f"  [{label}] date {date} ({counts[0]} trips on first candidate, max {max(counts)})", flush=True)
     dates_used.append(date); feed_dates.append((fspec.get("name") or label, date))

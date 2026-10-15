@@ -1,4 +1,28 @@
 {
+ "tokyo": {
+  "name": "Tokyo",
+  "sub": "JR, Metro, Toei & private railways",
+  "center": [
+   139.74,
+   35.68
+  ],
+  "home_km": [
+   46,
+   38
+  ],
+  "ext_km": [
+   52,
+   44
+  ],
+  "tz": "Asia/Tokyo",
+  "credit": "Tokyo rail GTFS (mkuran.pl, from ODPT & operators)",
+  "feeds": [
+   {
+    "label": "rail",
+    "path": "tokyo/rail.zip"
+   }
+  ]
+ },
  "hong-kong": {
   "name": "Hong Kong",
   "sub": "MTR, trams, buses & more",
@@ -91,6 +115,33 @@
   ],
   "tz": "Europe/Paris"
  },
+ "seoul": {
+  "name": "Seoul",
+  "sub": "Subway & rail",
+  "center": [
+   126.98,
+   37.55
+  ],
+  "home_km": [
+   42,
+   36
+  ],
+  "ext_km": [
+   50,
+   42
+  ],
+  "tz": "Asia/Seoul",
+  "rail_snap": true,
+  "credit": "KTDB Korea GTFS",
+  "feeds": [
+   {
+    "label": "rail",
+    "name": "Subway & rail",
+    "path": "seoul/clip",
+    "snap": "rail"
+   }
+  ]
+ },
  "new-york": {
   "name": "New York",
   "sub": "MTA & NJ Transit",
@@ -148,6 +199,85 @@
    }
   ],
   "tz": "America/New_York"
+ },
+ "cairo": {
+  "name": "Cairo",
+  "sub": "Metro & buses",
+  "center": [
+   31.25,
+   30.05
+  ],
+  "home_km": [
+   30,
+   26
+  ],
+  "ext_km": [
+   36,
+   30
+  ],
+  "tz": "Africa/Cairo",
+  "credit": "Transport for Cairo open data",
+  "feeds": [
+   {
+    "label": "metro",
+    "name": "Metro",
+    "path": "cairo/metro.zip"
+   },
+   {
+    "label": "bus",
+    "name": "Buses",
+    "path": "cairo/bus.zip"
+   }
+  ]
+ },
+ "taipei": {
+  "name": "Taipei",
+  "sub": "MRT, rail & buses",
+  "center": [
+   121.55,
+   25.04
+  ],
+  "home_km": [
+   30,
+   26
+  ],
+  "ext_km": [
+   34,
+   30
+  ],
+  "tz": "Asia/Taipei",
+  "credit": "Taiwan TDX GTFS (mirror)",
+  "feeds": [
+   {
+    "label": "tw",
+    "path": "taipei/clip"
+   }
+  ]
+ },
+ "istanbul": {
+  "name": "Istanbul",
+  "sub": "IETT buses",
+  "center": [
+   29.0,
+   41.04
+  ],
+  "home_km": [
+   58,
+   32
+  ],
+  "ext_km": [
+   56,
+   34
+  ],
+  "tz": "Europe/Istanbul",
+  "route_snap": true,
+  "credit": "IETT GTFS",
+  "feeds": [
+   {
+    "label": "iett",
+    "path": "istanbul/iett.zip"
+   }
+  ]
  },
  "berlin": {
   "name": "Berlin",
@@ -266,6 +396,32 @@
    }
   ],
   "tz": "America/Toronto"
+ },
+ "jakarta": {
+  "name": "Jakarta",
+  "sub": "KRL Commuter Line",
+  "center": [
+   106.84,
+   -6.22
+  ],
+  "home_km": [
+   44,
+   36
+  ],
+  "ext_km": [
+   50,
+   40
+  ],
+  "tz": "Asia/Jakarta",
+  "rail_snap": true,
+  "credit": "KAI Commuter GTFS (open-krl)",
+  "feeds": [
+   {
+    "label": "krl",
+    "path": "jakarta/krl.zip",
+    "snap": "rail"
+   }
+  ]
  },
  "chicago": {
   "name": "Chicago",

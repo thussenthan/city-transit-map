@@ -1,5 +1,18 @@
 [
  {
+  "id": "tokyo",
+  "name": "Tokyo",
+  "sub": "JR, Metro, Toei & private railways",
+  "credit": "Tokyo rail GTFS (mkuran.pl, from ODPT & operators)",
+  "date": "20261020",
+  "dates": {
+   "rail": "20261020"
+  },
+  "vehicles": 44506,
+  "bytes": 3867159,
+  "tz": "Asia/Tokyo"
+ },
+ {
   "id": "hong-kong",
   "name": "Hong Kong",
   "sub": "MTR, trams, buses & more",
@@ -41,6 +54,19 @@
   "tz": "Europe/Paris"
  },
  {
+  "id": "seoul",
+  "name": "Seoul",
+  "sub": "Subway & rail",
+  "credit": "KTDB Korea GTFS",
+  "date": "20261020",
+  "dates": {
+   "Subway & rail": "20261020"
+  },
+  "vehicles": 8213,
+  "bytes": 1843373,
+  "tz": "Asia/Seoul"
+ },
+ {
   "id": "new-york",
   "name": "New York",
   "sub": "MTA & NJ Transit",
@@ -60,6 +86,46 @@
   "vehicles": 78433,
   "bytes": 2511524,
   "tz": "America/New_York"
+ },
+ {
+  "id": "cairo",
+  "name": "Cairo",
+  "sub": "Metro & buses",
+  "credit": "Transport for Cairo open data",
+  "date": "20251021",
+  "dates": {
+   "Metro": "20251021",
+   "Buses": "20251230"
+  },
+  "vehicles": 154875,
+  "bytes": 2488655,
+  "tz": "Africa/Cairo"
+ },
+ {
+  "id": "taipei",
+  "name": "Taipei",
+  "sub": "MRT, rail & buses",
+  "credit": "Taiwan TDX GTFS (mirror)",
+  "date": "20261020",
+  "dates": {
+   "tw": "20261020"
+  },
+  "vehicles": 45247,
+  "bytes": 1778232,
+  "tz": "Asia/Taipei"
+ },
+ {
+  "id": "istanbul",
+  "name": "Istanbul",
+  "sub": "IETT buses",
+  "credit": "IETT GTFS",
+  "date": "20261020",
+  "dates": {
+   "iett": "20261020"
+  },
+  "vehicles": 7558,
+  "bytes": 1382622,
+  "tz": "Europe/Istanbul"
  },
  {
   "id": "berlin",
@@ -115,6 +181,19 @@
   "vehicles": 40478,
   "bytes": 1218003,
   "tz": "America/Toronto"
+ },
+ {
+  "id": "jakarta",
+  "name": "Jakarta",
+  "sub": "KRL Commuter Line",
+  "credit": "KAI Commuter GTFS (open-krl)",
+  "date": "20261020",
+  "dates": {
+   "krl": "20261020"
+  },
+  "vehicles": 1125,
+  "bytes": 998872,
+  "tz": "Asia/Jakarta"
  },
  {
   "id": "chicago",
