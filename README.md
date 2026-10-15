@@ -3,7 +3,7 @@
 Every scheduled bus, train and tram in a city, animated from its open GTFS timetable. One page, one tab per city:
 **Philadelphia, New York, Boston, Chicago, Los Angeles, San Francisco, San Diego, Portland, Minneapolis, Atlanta, Miami, Toronto, London, Paris, Berlin, Vienna, Amsterdam, Helsinki, Hong Kong, Melbourne.**
 
-Live: <https://thussenthan.github.io/philly-transit-map/>
+Live: <https://thussenthan.github.io/transit-in-motion/>
 
 Pan and zoom, scrub or play through the service day (starts at 08:00), filter by mode, and hover or click any dot for its route. Deep links work (`#paris`). Keys: `space` play/pause, `[` `]` previous/next city.
 
@@ -11,7 +11,7 @@ Inspired by the Vienna "every scheduled vehicle" map on r/MapPorn. `media/philad
 
 ## How it works
 
-Vehicle positions are interpolated along each route's shape between scheduled stop times (stops are projected onto the shape; feeds without shapes fall back to stop-to-stop lines; blank times are interpolated by distance; headway-based feeds are expanded into trips). Each city's trips and basemap are packed into `data/<city>.bin` (gzip JSON) and loaded when its tab is opened. Timetables are for a Tuesday (2026-10-20 where the feed covers it).
+Vehicle positions are interpolated along each route's shape between scheduled stop times (stops are projected onto the shape; feeds without usable shapes (Hong Kong buses, London rail) are snapped to the road or track network, and anything unroutable falls back to stop-to-stop lines; blank times are interpolated by distance; headway-based feeds are expanded into trips). Each city's trips and basemap are packed into `data/<city>.bin` (gzip JSON) and loaded when its tab is opened. Timetables are for a Tuesday (2026-10-20 where the feed covers it).
 
 ## Data and caveats
 
@@ -29,8 +29,8 @@ Vehicle positions are interpolated along each route's shape between scheduled st
 | Atlanta | MARTA |
 | Miami | Miami-Dade Transit |
 | Toronto | TTC |
-| London | Buses from the DfT Bus Open Data Service; Tube, Overground, Elizabeth line, DLR, Tramlink and National Rail from the Great Britain GTFS (Transitous), clipped to London with `tools/clip_gtfs.py` |
-| Paris | Île-de-France Mobilités (metro, RER/Transilien, tram, bus); no shapes in the feed so lines are stop-to-stop |
+| London | Buses from the DfT Bus Open Data Service; Tube, Overground, Elizabeth line, DLR, Tramlink and National Rail from the Great Britain GTFS (Transitous), clipped to London with `tools/clip_gtfs.py`; that feed's rail shapes are stop-to-stop chords, so rail/Tube/tram routes are snapped to real track geometry from Overture |
+| Paris | Île-de-France Mobilités (metro, RER/Transilien, tram, bus) |
 | Berlin | VBB |
 | Vienna | Wiener Linien and regional operators (VOR) |
 | Amsterdam | Dutch national GTFS (OVapi), clipped to the Amsterdam area |

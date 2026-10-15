@@ -163,25 +163,40 @@ def project(cum, seg_a, seg_ab, seg_len, pts):
     return np.array(out)
 
 class Router:
-    """Snap stop sequences to the road graph (fetch_base.py graph.npz): shortest road path between consecutive stops."""
-    def __init__(self):
+    """Snap stop sequences to a network (fetch_base.py graph*.npz): shortest path between consecutive stops.
+    allowed: optional {edge class name: cost multiplier} (rail graph) restricting which track a route may use."""
+    def __init__(self, npz="graph.npz", allowed=None, snap_px=12.0, strict=True):
         from scipy.sparse import csr_matrix
         from scipy.spatial import cKDTree
-        z = np.load(os.path.join(WORK, "graph.npz"))
-        nx, ny = to_px(z["node"][:, 0], z["node"][:, 1]); self.P = np.column_stack([nx, ny]); n = len(self.P)
+        z = np.load(os.path.join(WORK, npz))
         u, v, w = z["u"].astype(np.int64), z["v"].astype(np.int64), z["w"].astype(np.float64) / MPP
+        if allowed is not None:
+            names = list(z["classes"]); keep = np.isin(z["c"], [i for i, n in enumerate(names) if n in allowed])
+            mult = np.array([allowed.get(n, 1.0) for n in names])[z["c"]]
+            pri = (mult == 1.0)[keep]                                     # edges of the route's own track type
+            u, v, w = u[keep], v[keep], (w * mult)[keep]
+        if allowed is None: pri = np.ones(len(u), bool)
+        pri_nodes = np.unique(np.r_[u[pri], v[pri]])
+        used = np.unique(np.r_[u, v]); remap = -np.ones(len(z["node"]), np.int64); remap[used] = np.arange(len(used))
+        u, v = remap[u], remap[v]; pri_nodes = remap[pri_nodes]
+        nx, ny = to_px(z["node"][used, 0], z["node"][used, 1]); self.P = np.column_stack([nx, ny]); n = len(self.P)
         a, b = np.minimum(u, v), np.maximum(u, v)
         o = np.lexsort((w, b * n + a)); a, b, w = a[o], b[o], w[o]          # keep the lightest of duplicate edges
         first = np.r_[True, (a[1:] != a[:-1]) | (b[1:] != b[:-1])]; a, b, w = a[first], b[first], w[first]
         self.g = csr_matrix((np.r_[w, w], (np.r_[a, b], np.r_[b, a])), shape=(n, n))
-        self.tree = cKDTree(self.P); self.cache = {}
-        print(f"  router: {n} nodes, {len(a)} edges", flush=True)
+        self.tree = cKDTree(self.P); self.cache = {}; self.snap_px = snap_px
+        self.pri_nodes = pri_nodes; self.pri_tree = cKDTree(self.P[pri_nodes]) if len(pri_nodes) else None; self.strict = strict; self.stats = Counter(); self.failed = []
+        print(f"  router {npz} {sorted(allowed) if allowed else 'all'}: {n} nodes, {len(a)} edges", flush=True)
     def path(self, a, b):
         k = (a, b)
         if k not in self.cache:
             from scipy.sparse.csgraph import dijkstra
             chord = float(np.hypot(*(self.P[a] - self.P[b])))
             dist, pred = dijkstra(self.g, directed=True, indices=a, return_predecessors=True, limit=max(chord * 8.0, 80.0))
+            if not np.isfinite(dist[b]):                                  # retry without the limit: detour vs. truly disconnected
+                dist, pred = dijkstra(self.g, directed=True, indices=a, return_predecessors=True)
+                self.stats["found-after-retry" if np.isfinite(dist[b]) else "disconnected"] += 1
+                if not np.isfinite(dist[b]): self.failed.append((a, b))
             if not np.isfinite(dist[b]): self.cache[k] = None
             else:
                 p = [b]
@@ -189,17 +204,35 @@ class Router:
                 self.cache[k] = self.P[p[::-1]]
         return self.cache[k]
     def route(self, pts):
-        d, idx = self.tree.query(pts); ok = d <= 12.0                      # stop within ~240 m of a road
+        d, idx = self.tree.query(pts)
+        if self.pri_tree is not None:                                          # prefer the route's own track type when it is near enough
+            dp, ip = self.pri_tree.query(pts); use = dp <= self.snap_px
+            d = np.where(use, dp, d); idx = np.where(use, self.pri_nodes[ip], idx)
+        ok = d <= self.snap_px                                                 # stop within snap_px of the network
         out = [pts[0]]
         for i in range(1, len(pts)):
             pa = self.path(idx[i - 1], idx[i]) if ok[i - 1] and ok[i] and idx[i - 1] != idx[i] else None
+            self.stats["routed" if pa is not None else "same-node" if idx[i - 1] == idx[i] else "far-from-network" if not (ok[i - 1] and ok[i]) else "no-path"] += 1
             if pa is not None: out.extend(pa)
-            elif np.hypot(*(pts[i] - pts[i - 1])) > 60.0: return None        # long unroutable jump (e.g. cross-border): skip the trip
+            elif self.strict and np.hypot(*(pts[i] - pts[i - 1])) > 60.0: return None   # long unroutable jump: skip the trip
             out.append(pts[i])
         out = np.array(out); keep = np.r_[True, np.hypot(*np.diff(out, axis=0).T) > 1e-6]
         return out[keep]
 
 ROUTER = Router() if CFG.get("route_snap") and os.path.exists(os.path.join(WORK, "graph.npz")) else None
+RAIL_ROUTERS = {}
+def rail_router(rtype):
+    """Track a route type may run on, with a cost penalty for neighbouring track types (outer Tube lines are mapped as
+    standard-gauge track in OSM, parts of the Elizabeth line as subway), so a Tube line still prefers subway track."""
+    if not (CFG.get("rail_snap") and os.path.exists(os.path.join(WORK, "graph_rail.npz"))): return None
+    try: t = int(rtype)
+    except ValueError: t = 2
+    allowed = ({"subway": 1.0, "standard_gauge": 3.0, "light_rail": 2.0} if t == 1
+               else {"tram": 1.0, "light_rail": 1.0, "monorail": 1.0, "funicular": 1.0} if t in (0, 5, 7, 12)
+               else {"standard_gauge": 1.0, "narrow_gauge": 1.0, "subway": 3.0, "light_rail": 2.0})
+    key = tuple(sorted(allowed.items()))
+    if key not in RAIL_ROUTERS: RAIL_ROUTERS[key] = Router("graph_rail.npz", allowed, snap_px=10.0, strict=False)
+    return RAIL_ROUTERS[key]
 
 shapes, shape_meta, routes, route_idx, heads, head_idx = [], {}, [], {}, [], {}
 veh, T, D = [], [], []
@@ -222,7 +255,8 @@ def process_feed(fspec):
         cls = route_class(getattr(r, "route_type", "3"))
         if cls < 0: continue
         rinfo[r.route_id] = (cls, pick_color(cls, getattr(r, "route_color", "")),
-                             getattr(r, "route_short_name", "") or r.route_id, getattr(r, "route_long_name", ""))
+                             getattr(r, "route_short_name", "") or r.route_id, getattr(r, "route_long_name", ""),
+                             getattr(r, "route_type", "3"))
     trips = trips[trips.route_id.isin(rinfo)]
     sx, sy = to_px(pd.to_numeric(stops.stop_lon, errors="coerce").values, pd.to_numeric(stops.stop_lat, errors="coerce").values)
     stop_ids = stops.stop_id.values; sidx = {s: i for i, s in enumerate(stop_ids)}
@@ -261,6 +295,7 @@ def process_feed(fspec):
     # shapes needed
     tinfo = trips.set_index("trip_id")
     need = set(tinfo.shape_id[tinfo.shape_id != ""].unique())
+    if fspec.get("snap") == "rail": need = set()               # this feed's shapes are stop-to-stop chords: snap to real track instead
     shp = {}
     sf = os.path.join(d, "shapes.txt")
     if os.path.exists(sf) and need:
@@ -283,7 +318,7 @@ def process_feed(fspec):
         sl = slice(a + first, a + last + 1)
         si, arr, dep = ts[sl], ta[sl], td[sl]
         if len(si) < 2: continue
-        tid = codes[tc[a]]; info = tinfo.loc[tid]; cls, color, rshort, rlong = rinfo[info.route_id]
+        tid = codes[tc[a]]; info = tinfo.loc[tid]; cls, color, rshort, rlong, rtype = rinfo[info.route_id]
         pkey = (info.shape_id if info.shape_id in shp else None, tuple(si))
         if pkey not in pat_cache:
             routed = False
@@ -301,6 +336,8 @@ def process_feed(fspec):
                     xy = ROUTER.route(xy)
                     if xy is None: pat_cache[pkey] = None; continue
                     xy = simp(xy, 0.15); gk = (label, "road", pkey[1]); routed = True
+                elif fspec.get("snap") == "rail" and cls >= 1 and len(xy) >= 2 and rail_router(rtype) is not None:
+                    xy = simp(rail_router(rtype).route(xy), 0.15); gk = (label, "track", rtype, pkey[1]); routed = True
             if len(xy) < 2: pat_cache[pkey] = None
             else:
                 ab = np.diff(xy, axis=0); sl_ = np.hypot(*ab.T); cum = np.r_[0, np.cumsum(sl_)]
@@ -351,6 +388,10 @@ for fs in CFG["feeds"]:
     try: process_feed(fs)
     except Exception as e:
         import traceback; traceback.print_exc(); print("  feed failed:", fs["label"], flush=True)
+for k_, r_ in RAIL_ROUTERS.items():
+    print("  rail router", k_, dict(r_.stats), flush=True)
+    for a_, b_ in r_.failed[:12]: print("    unroutable", [round(c, 4) for c in to_ll(*r_.P[a_])], "->", [round(c, 4) for c in to_ll(*r_.P[b_])], "chord km %.1f" % (np.hypot(*(r_.P[a_] - r_.P[b_])) * MPP / 1000), flush=True)
+if ROUTER is not None: print("  road router", dict(ROUTER.stats), flush=True)
 payload = {"id": args.city, "u": U, "base": base, "shapes": shapes, "routes": routes, "heads": heads,
            "veh": veh, "T": T, "D": D, "view": {"w": WPX, "h": HPX},
            "home": {"cx": WPX / 2, "cy": HPX / 2, "w": CFG["home_km"][0] * 1000 / MPP, "h": CFG["home_km"][1] * 1000 / MPP},

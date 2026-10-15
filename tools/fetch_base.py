@@ -104,3 +104,32 @@ if cfg.get("route_snap"):                      # drivable road graph, used by bu
                         w=(np.hypot(dx, dy) * pw).astype(np.float32))
     print(f"  graph: {len(node)} nodes, {len(u)} edges", flush=True)
 print(f"DONE {a.city}: water rings {len(water)}, parks {len(parks)}, roads {len(roads)}", flush=True)
+
+
+if cfg.get("rail_snap"):                       # track geometry (all rail classes) for snapping coarse rail/metro/tram shapes
+    print("rail graph", flush=True)
+    rows = q(f"""SELECT class, ST_AsWKB(geometry) FROM read_parquet('{base}/theme=transportation/type=segment/*', hive_partitioning=1)
+                 WHERE {where_box} AND subtype = 'rail' AND class IN
+                 ('standard_gauge','narrow_gauge','light_rail','subway','tram','monorail','funicular')""")
+    classes = ["standard_gauge", "narrow_gauge", "light_rail", "subway", "tram", "monorail", "funicular"]
+    lines, lc = [], []
+    for cl, b in rows:
+        g = wkb.loads(bytes(b))
+        for ln in (g.geoms if hasattr(g, "geoms") else [g]):
+            if ln.geom_type == "LineString" and len(ln.coords) > 1:
+                lines.append(np.array(ln.coords)); lc.append(classes.index(cl))
+    print("  class counts:", {classes[i]: lc.count(i) for i in range(len(classes)) if lc.count(i)}, flush=True)
+    allp = np.concatenate(lines)
+    ik = np.rint(allp * 1e6).astype(np.int64)
+    key = (ik[:, 0] + 200_000_000) * 400_000_000 + (ik[:, 1] + 100_000_000)
+    uniq, inv = np.unique(key, return_inverse=True)
+    node = np.column_stack([(uniq // 400_000_000 - 200_000_000) / 1e6, (uniq % 400_000_000 - 100_000_000) / 1e6])
+    offs = np.cumsum([0] + [len(l) for l in lines])
+    u = np.concatenate([inv[offs[i]:offs[i + 1] - 1] for i in range(len(lines))])
+    v = np.concatenate([inv[offs[i] + 1:offs[i + 1]] for i in range(len(lines))])
+    ec = np.concatenate([np.full(len(l) - 1, lc[i], np.int8) for i, l in enumerate(lines)])
+    ok = u != v; u, v, ec = u[ok], v[ok], ec[ok]
+    dx = (node[v, 0] - node[u, 0]) * 111320 * np.cos(np.radians(clat)); dy = (node[v, 1] - node[u, 1]) * 110540
+    np.savez_compressed(os.path.join(out_dir, "graph_rail.npz"), node=node, u=u.astype(np.int32), v=v.astype(np.int32),
+                        w=np.hypot(dx, dy).astype(np.float32), c=ec, classes=np.array(classes))
+    print(f"  rail graph: {len(node)} nodes, {len(u)} edges", flush=True)

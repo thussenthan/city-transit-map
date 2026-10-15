@@ -353,9 +353,11 @@
    {
     "label": "rail",
     "name": "Rail, Tube & trams",
-    "path": "london/rail"
+    "path": "london/rail",
+    "snap": "rail"
    }
-  ]
+  ],
+  "rail_snap": true
  },
  "paris": {
   "name": "Paris",
