@@ -5,7 +5,7 @@ Every scheduled bus, train and tram in a city, animated from its open GTFS timet
 
 Live: <https://thussenthan.github.io/city-transit-map/>
 
-Pan and zoom, scrub or play through the service day (it opens at the city's current local time), filter by mode, and hover or click any dot for its route. Deep links work (`#paris`). Keys: `space` play/pause, `[` `]` previous/next city.
+Pan and zoom, scrub or play through the service day (it opens at the city's current local time), filter by mode, toggle a density heatmap (`D`: vehicles running per area, coloured against that city's peak moment of the day), and hover or click any dot for its route. Deep links work (`#paris`). Keys: `space` play/pause, `[` `]` previous/next city.
 
 Inspired by the Vienna "every scheduled vehicle" map on r/MapPorn. `media/philadelphia.mp4` is a 10-second video version of the same idea.
 
@@ -13,7 +13,7 @@ Inspired by the Vienna "every scheduled vehicle" map on r/MapPorn. `media/philad
 
 Vehicle positions are interpolated along each route's shape between scheduled stop times (stops are projected onto the shape; feeds without usable shapes (Hong Kong buses, London rail) are snapped to the road or track network, and anything unroutable falls back to stop-to-stop lines; blank times are interpolated by distance; headway-based feeds are expanded into trips). Each city's trips and basemap are packed into `data/<city>.bin` (gzip JSON) and loaded when its tab is opened. Timetables are for a Tuesday (2026-10-20 where the feed covers it).
 
-**Overlapping lines.** Metro, tram and rail lines that share a corridor are drawn side by side, one lane per colour, like a subway map (`bundle_lanes` in `tools/build_city.py`); vehicles ride their own lane. Buses are drawn in a muted indigo and regional rail in a muted teal, colours metro lines rarely use. Vehicles are white dots that ease out of and into every stop while still crossing each stop at its scheduled time.
+**Overlapping lines.** Metro, tram and rail lines that share a corridor are drawn side by side, one lane per colour, like a subway map (`bundle_lanes` in `tools/build_city.py`); vehicles ride their own lane. Buses are drawn in a muted indigo and regional rail in a muted teal, colours metro lines rarely use. Trip times are repaired so no vehicle teleports (feeds that round to the minute are spread by distance). Vehicles are white dots that ease out of and into every stop while still crossing each stop at its scheduled time.
 
 ## Data and caveats
 
