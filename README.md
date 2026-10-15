@@ -56,5 +56,5 @@ python3 -m http.server   # the page needs http (it fetches data/*.bin)
 
 ## Credits
 
-Schedules: the agencies' open data (Tokyo rail GTFS by Mikołaj Kuranowski, KTDB, Taiwan TDX, Transport for Cairo, SEPTA, MTA, NJ Transit, MBTA, CTA, Metra, LA Metro, SFMTA, BART MTS, TTC, Île-de-France Mobilités, VBB, Wiener Linien, OVapi, HSL, DfT Bus Open Data Service, Transitous/aubin.app (Great Britain), Hong Kong Transport Department, Hong Kong Community GTFS, Public Transport Victoria).
+Schedules: the agencies' open data (Tokyo rail GTFS by Mikołaj Kuranowski, KTDB, Taiwan TDX, Transport for Cairo, SEPTA, MTA, NJ Transit, MBTA, CTA, Metra, LA Metro, SFMTA, BART, TTC, Île-de-France Mobilités, VBB, Wiener Linien, OVapi, HSL, DfT Bus Open Data Service, Transitous/aubin.app (Great Britain), Hong Kong Transport Department, Hong Kong Community GTFS, Public Transport Victoria).
 Basemap: © OpenStreetMap contributors, via Overture Maps Foundation (ODbL).
