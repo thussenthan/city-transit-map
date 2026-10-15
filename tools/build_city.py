@@ -336,8 +336,9 @@ def process_feed(fspec):
     for r in rts.itertuples():
         cls = route_class(getattr(r, "route_type", "3"))
         if cls < 0: continue
-        rinfo[r.route_id] = (cls, pick_color(cls, getattr(r, "route_color", "")),
-                             getattr(r, "route_short_name", "") or r.route_id, getattr(r, "route_long_name", ""),
+        lc = CFG.get("line_colors", {}); nm, ln = getattr(r, "route_short_name", "") or r.route_id, getattr(r, "route_long_name", "")
+        rinfo[r.route_id] = (cls, pick_color(cls, lc.get(nm) or lc.get(ln) or getattr(r, "route_color", "")),
+                             nm, ln,
                              getattr(r, "route_type", "3"))
     trips = trips[trips.route_id.isin(rinfo)]
     sx, sy = to_px(pd.to_numeric(stops.stop_lon, errors="coerce").values, pd.to_numeric(stops.stop_lat, errors="coerce").values)

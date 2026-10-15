@@ -296,6 +296,7 @@
   "tz": "Asia/Hong_Kong"
  },
  "london": {
+  "line_colors": {"Bakerloo": "B36305", "Central": "E32017", "Circle": "FFD300", "District": "00782A", "Hammersmith & City": "F3A9BB", "Jubilee": "A0A5A9", "Metropolitan": "9B0056", "Northern": "000000", "Piccadilly": "0019A8", "Victoria": "0098D4", "Waterloo & City": "95CDBA", "Tram": "66CC00"},
   "name": "London",
   "sub": "Tube, rail, trams & buses",
   "center": [
@@ -363,6 +364,7 @@
   "rail_snap": true
  },
  "seoul": {
+  "line_colors": {"서울1호선": "0052A4", "서울2호선": "00A84D", "서울3호선": "EF7C1C", "서울4호선": "00A5DE", "서울5호선": "996CAC", "서울6호선": "CD7C2F", "서울7호선": "747F00", "서울8호선": "E6186C", "서울9호선": "BDB092", "경의중앙선": "77C4A3", "공항철도": "0090D2", "용인경전철": "56AD2D", "자기부상열차": "FFB300", "경춘선": "0C8E72", "인천1호선": "7CA8D5", "인천2호선": "ED8B00", "경강선": "0054A6", "김포도시철도": "A17E46", "신분당선": "D4003B", "수인분당선": "F5A200", "서해선": "81A914", "의정부경전철": "FDA600", "우이신설경전철": "B0CE18"},
   "name": "Seoul",
   "sub": "Subway",
   "center": [
