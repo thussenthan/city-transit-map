@@ -127,7 +127,7 @@ def route_class(rtype):
     if t in (4, 6) or 1000 <= t < 1400: return -1              # ferry / gondola: skipped
     return 0
 
-DEFAULT = {0: "987CFF", 1: "E6E6E6", 2: "9EB08A"}          # bus = violet, regional rail = muted sage: hues metro lines rarely use
+DEFAULT = {0: "6373A8", 1: "E6E6E6", 2: "56968C"}          # bus = muted indigo, regional rail = muted teal: colours metro lines rarely use
 def pick_color(cls, c):
     if cls != 1: return DEFAULT[cls]
     c = (c or "").strip().lstrip("#").upper()
@@ -139,6 +139,34 @@ def pick_color(cls, c):
         f = (0.42 - lum) / (1 - lum) + 0.08
         r, g, b = (int(v + (255 - v) * f) for v in (r, g, b))
     return "%02X%02X%02X" % (r, g, b)
+
+VMAX = {0: 30.0, 1: 35.0, 2: 90.0}                          # m/s per class: generous caps that only remove impossible legs
+
+def retime(tt, dd, cls):
+    """Make a trip's (time, distance) points physically sensible so a vehicle never teleports.
+    A. Timetables round to the minute, so several consecutive stops often share one timestamp while the vehicle moves
+       (an instant hop). Spread such runs by distance between the neighbouring distinct times, like GTFS untimed-stop interpolation.
+    B. Any leg still faster than VMAX is stretched: the earliest-feasible and latest-feasible timings are averaged.
+    Both leave already-sensible trips untouched."""
+    tt = np.asarray(tt, float).copy(); n = len(tt)
+    if n < 2: return tt
+    vn = 10.0 / MPP                                         # nominal speed (px/s) when a run has no neighbour to interpolate with
+    i = 0
+    while i < n - 1:
+        if tt[i + 1] == tt[i] and dd[i + 1] > dd[i] + 1e-6:
+            j = i + 1
+            while j + 1 < n and tt[j + 1] == tt[i]: j += 1
+            T0 = tt[i]
+            if i > 0 and j + 1 < n and dd[j + 1] > dd[i - 1]:
+                tt[i:j + 1] = tt[i - 1] + (tt[j + 1] - tt[i - 1]) * (dd[i:j + 1] - dd[i - 1]) / (dd[j + 1] - dd[i - 1])
+            elif i == 0 and j + 1 < n: tt[i:j + 1] = T0 - (dd[j] - dd[i:j + 1]) / vn
+            else: tt[i:j + 1] = T0 + (dd[i:j + 1] - dd[i]) / vn
+            i = j
+        else: i += 1
+    S = np.r_[0.0, np.cumsum(np.diff(dd) / (VMAX[cls] * 1.0 / MPP))]                       # minimum travel seconds along the trip
+    tf = S + np.maximum.accumulate(tt - S)                                                  # earliest-feasible
+    tb = S + np.minimum.accumulate((tt - S)[::-1])[::-1]                                    # latest-feasible
+    return np.maximum.accumulate(0.5 * (tf + tb))
 
 def rdp_keep(t, d, tol):
     n = len(t); keep = np.zeros(n, bool); keep[0] = keep[-1] = True; stack = [(0, n - 1)]
@@ -419,6 +447,7 @@ def process_feed(fspec):
         keep = np.ones(len(tt), bool); keep[1:] = (np.diff(tt) != 0) | (np.diff(dd) != 0)
         tt, dd = tt[keep], dd[keep]
         if len(tt) < 2: continue
+        tt = retime(tt, dd, cls)
         kp = rdp_keep(tt, dd, 0.5); tt, dd = tt[kp], dd[kp]
         rk = (label, info.route_id)
         if rk not in route_idx:
@@ -448,41 +477,61 @@ for fs in CFG["feeds"]:
     except Exception as e:
         import traceback; traceback.print_exc(); print("  feed failed:", fs["label"], flush=True)
 LANE_PX, CELL_PX, STEP_PX = 1.7, 5.0, 3.0
+MIN_RUN, BRIDGE = 9, 4                                      # samples: shortest overlap worth separating / longest gap to bridge
 
 def bundle_lanes():
     """Metro/tram/rail lines that share a corridor are drawn side by side (one lane per colour), like a subway map.
+    - Lane order is by colour, and every line's offset is measured against the same reference direction, so the order never
+      flips along a corridor (no X crossings) even when it turns through east-west.
+    - Brief crossings and merges (shorter than MIN_RUN samples) are left alone; lane changes are eased over ~50 px.
     Returns {shape index: (orig distance samples, new distance samples)} so vehicle positions can follow their lane."""
     ids = [i for i in shape_xy if shapes[i][0] >= 1 and len(shape_xy[i]) >= 2]
     if not ids: return {}
     cols = {c: n for n, c in enumerate(sorted({shapes[i][1] for i in ids}))}
-    P, TG, CK, SH = [], [], [], []
-    samp = {}; tot = 0
+    P, TG, CL, samp, tot = [], [], [], {}, 0
     for i in ids:
         xy = shape_xy[i]; seg = np.hypot(*np.diff(xy, axis=0).T); cum = np.r_[0, np.cumsum(seg)]
         if cum[-1] < 1e-6: continue
         so = np.unique(np.r_[np.arange(0, cum[-1], STEP_PX), cum[-1]])
         pts = np.column_stack([np.interp(so, cum, xy[:, 0]), np.interp(so, cum, xy[:, 1])])
         d = np.gradient(pts, axis=0)
-        n_ = np.hypot(*d.T); n_[n_ == 0] = 1; d = d / n_[:, None]
-        flip = (d[:, 0] < 0) | ((d[:, 0] == 0) & (d[:, 1] < 0)); d[flip] *= -1          # canonical direction, so both travel directions share one normal
-        samp[i] = (so, tot, len(pts)); tot += len(pts); P.append(pts); TG.append(d); SH.append(np.full(len(pts), cols[shapes[i][1]]))
-    P, TG, CL = np.vstack(P), np.vstack(TG), np.concatenate(SH)
-    ang = np.arctan2(TG[:, 1], TG[:, 0]) % np.pi; binn = (ang / (np.pi / 8)).astype(np.int64) % 8
-    cx, cy = np.floor(P[:, 0] / CELL_PX).astype(np.int64) + 5, np.floor(P[:, 1] / CELL_PX).astype(np.int64) + 5
-    cell = (cx * 40000 + cy) * 8 + binn; pair = cell * 4096 + CL
-    up = np.unique(pair); ucell = up // 4096
-    _, first, inv, cnt = np.unique(ucell, return_index=True, return_inverse=True, return_counts=True)
-    rank_u = np.arange(len(up)) - first[inv]; n_u = cnt[inv]
-    ix = np.searchsorted(up, pair); rank, nn = rank_u[ix], n_u[ix]
-    off = (rank - (nn - 1) / 2.0) * LANE_PX
+        if len(d) >= 5: d = np.column_stack([np.convolve(np.pad(d[:, k], 2, mode="edge"), np.ones(5) / 5, mode="valid") for k in (0, 1)])
+        n_ = np.hypot(*d.T); n_[n_ == 0] = 1; d = d / n_[:, None]                      # unit tangent in the shape's own travel direction
+        samp[i] = (so, tot, len(pts)); tot += len(pts); P.append(pts); TG.append(d); CL.append(np.full(len(pts), cols[shapes[i][1]]))
+    P, TG, CL = np.vstack(P), np.vstack(TG), np.concatenate(CL)
+    cx, cy = np.floor(P[:, 0] / CELL_PX).astype(np.int64) + 8, np.floor(P[:, 1] / CELL_PX).astype(np.int64) + 8
+    cell = cx * 40000 + cy; pair = cell * 4096 + CL
+    up, first = np.unique(pair, return_index=True)                                       # one entry per (cell, colour)
+    ucell, ucol, ut = up // 4096, up % 4096, TG[first]
+    offs = np.array([dx * 40000 + dy for dx in (-1, 0, 1) for dy in (-1, 0, 1)])
+    ex = ((ucell[:, None] + offs[None, :]) * 4096 + ucol[:, None]).ravel()               # every entry also counts in its 8 neighbour cells
+    ext = np.repeat(ut, 9, axis=0)
+    uep, ei = np.unique(ex, return_index=True); e_cell, e_t = uep // 4096, ext[ei]
+    cells_u, cstart, ccount = np.unique(e_cell, return_index=True, return_counts=True)
+    gi = np.searchsorted(cells_u, cell); nn, start = ccount[gi], cstart[gi]
+    rank = np.searchsorted(uep, pair) - start
+    ref = e_t[start]                                                                      # reference direction: the lowest-colour line in the corridor
+    sgn = np.where((TG * ref).sum(1) >= 0, 1.0, -1.0)
+    off = (rank - (nn - 1) / 2.0) * LANE_PX * sgn                                         # signed offset along each sample's own left normal
+    ovl = nn > 1
     NM = np.column_stack([-TG[:, 1], TG[:, 0]])
-    maps, k0 = {}, 0
+    kern = np.convolve(np.ones(6), np.ones(6)); kern = kern / kern.sum(); half = len(kern) // 2
+    maps = {}
     for i in ids:
         if i not in samp: continue
         so, st_, ln = samp[i]; sl = slice(st_, st_ + ln)
-        o = off[sl]
+        ov = ovl[sl].copy(); o = np.where(ov, off[sl], 0.0)
+        if ov.any():
+            d_ = np.diff(np.r_[0, ov.astype(np.int8), 0]); starts, ends = np.flatnonzero(d_ == 1), np.flatnonzero(d_ == -1)
+            for k in range(1, len(starts)):                                             # bridge short gaps between overlap runs
+                if starts[k] - ends[k - 1] <= BRIDGE:
+                    ov[ends[k - 1]:starts[k]] = True
+                    xs = np.arange(ends[k - 1], starts[k]); o[xs] = np.interp(xs, [ends[k - 1] - 1, starts[k]], [o[ends[k - 1] - 1], o[starts[k]]])
+            d_ = np.diff(np.r_[0, ov.astype(np.int8), 0]); starts, ends = np.flatnonzero(d_ == 1), np.flatnonzero(d_ == -1)
+            for a_, b_ in zip(starts, ends):                                            # drop overlaps too short to be a real shared corridor
+                if b_ - a_ < MIN_RUN: ov[a_:b_] = False; o[a_:b_] = 0.0
         if np.any(o != 0):
-            w = 4; pad = np.pad(o, w, mode="edge"); o = np.convolve(pad, np.ones(2 * w + 1) / (2 * w + 1), mode="valid")   # ease lane changes
+            o = np.convolve(np.pad(o, half, mode="edge"), kern, mode="valid")           # ease lane changes
         newp = P[sl] + o[:, None] * NM[sl]
         sn = np.r_[0, np.cumsum(np.hypot(*np.diff(newp, axis=0).T))]
         maps[i] = (so, sn); shapes[i][2] = enc(simp(newp, 0.1))

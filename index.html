@@ -66,11 +66,22 @@
   .tip small { display:block; color:var(--dim); margin-top:3px; }
   .foot { position:fixed; left:0; right:0; bottom:max(5px,env(safe-area-inset-bottom)); text-align:center; font-size:11px; color:var(--faint); pointer-events:none; padding:0 8px; }
   .foot a { color:inherit; pointer-events:auto; }
-  #hide { width:42px; height:34px; padding:0; font-size:15px; }
+  #hide { position:absolute; top:-13px; left:50%; transform:translateX(-50%); width:46px; height:22px; padding:0; border-radius:11px; font-size:14px; line-height:1;
+          background:var(--panel); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); color:var(--dim); }
+  #hide:hover { color:var(--fg); background:rgba(40,40,44,.95); }
   #restore { position:fixed; right:max(12px,env(safe-area-inset-right)); bottom:max(26px,calc(env(safe-area-inset-bottom) + 14px)); z-index:7; display:none;
              padding:7px 14px; border-radius:99px; font-size:13px; font-weight:500; background:rgba(24,24,27,.55); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
              color:var(--dim); opacity:.55; }
   #restore:hover { opacity:1; color:var(--fg); }
+  .chip.heat { margin-left:auto; }
+  .chip.heat[aria-pressed=true] { background:rgba(255,140,50,.22); border-color:rgba(255,170,90,.6); }
+  .chip.heat i { background:linear-gradient(90deg,#46228c,#b42882,#fa7828,#ffe678); }
+  .legend { position:fixed; left:max(16px,env(safe-area-inset-left)); top:calc(var(--tabs) + env(safe-area-inset-top) + 100px); display:none; pointer-events:none;
+            font-size:11px; color:var(--dim); text-shadow:0 1px 8px rgba(0,0,0,.8); }
+  .legend.on { display:block; }
+  .legend .bar { width:150px; height:7px; border-radius:4px; margin:4px 0 3px; background:linear-gradient(90deg,rgba(70,30,140,.4),#b42882,#fa7828,#ffe678); }
+  .legend .lab { display:flex; justify-content:space-between; }
+  body.min .legend { display:none !important; }
   body.min nav, body.min .title, body.min .clock, body.min .panel, body.min .zoom, body.min .menu { display:none !important; }
   body.min #restore { display:block; }
   body.min .foot { display:none; }
@@ -93,8 +104,10 @@
 <div class="clock"><div class="t" id="clock">08:00</div><div class="n" id="count"></div></div>
 <div class="zoom"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button>
   <button id="zhome" aria-label="Reset view" style="font-size:15px">⌂</button></div>
+<div class="legend" id="legend"><div>Vehicles running vs. this city's peak</div><div class="bar"></div><div class="lab"><span>fewer</span><span>peak</span></div></div>
 <div class="tip" id="tip"></div>
 <div class="panel">
+  <button id="hide" aria-label="Hide controls" title="Hide controls (H)">⌄</button>
   <div class="row">
     <button id="play" aria-label="Play or pause">❚❚</button>
     <input id="time" type="range" min="0" max="1" step="1" aria-label="Time of day">
@@ -102,12 +115,12 @@
       <option value="1">1×</option><option value="10">10×</option><option value="60">60×</option>
       <option value="120" selected>120×</option><option value="300">300×</option><option value="900">900×</option>
     </select>
-    <button id="hide" aria-label="Hide controls" title="Hide controls (H)">⌄</button>
   </div>
   <div class="row">
     <button class="chip" data-cls="1" aria-pressed="true"><i style="background:linear-gradient(90deg,#fff 0 33%,#bbb 33% 66%,#888 66%)"></i>Metro &amp; tram</button>
-    <button class="chip" data-cls="2" aria-pressed="true"><i style="background:#9eb08a"></i>Regional rail</button>
-    <button class="chip" data-cls="0" aria-pressed="true"><i style="background:#987cff"></i>Bus</button>
+    <button class="chip" data-cls="2" aria-pressed="true"><i data-chipcol="rail"></i>Regional rail</button>
+    <button class="chip" data-cls="0" aria-pressed="true"><i data-chipcol="bus"></i>Bus</button>
+    <button class="chip heat" id="heat" aria-pressed="false" title="Density heatmap (D)"><i></i>Heatmap</button>
   </div>
 </div>
 <button id="restore" aria-label="Show controls" title="Show controls (H)">Show</button>
@@ -122,6 +135,7 @@ const st = document.createElement("canvas"), sctx = st.getContext("2d");
 let dpr = 1, vw = 0, vh = 0;
 const view = { s: 1, x: 0, y: 0 };
 const show = { 0: true, 1: true, 2: true };
+const COL = { bus: { line: "rgba(99,115,168,.55)", chip: "#6373a8", tip: "#47548a" }, rail: { line: "rgba(86,150,140,.85)", chip: "#56968c", tip: "#3c7068" } };   // bus / regional-rail palette
 let t = 8 * 3600, loopStart = t, playing = true, speed = 120, loop = false, scrubbed = false, curTz = null;
 function tzOffset(tz) {                               // seconds east of UTC right now (DST-aware)
   try { const d = new Date(), p = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric",
@@ -250,6 +264,7 @@ addEventListener("keydown", e => {
   else if (e.code === "Space") { e.preventDefault(); $("play").click(); }
   else if (e.key === "+" || e.key === "=") zoomAt(vw/2, vh/2, 1.4); else if (e.key === "-") zoomAt(vw/2, vh/2, 1/1.4);
   else if (e.key === "Escape") { selected = -1; closeMenu(); }
+  else if (e.key === "d" || e.key === "D") setHeat(!heat);
   else if (e.key === "h" || e.key === "H") setMin(!document.body.classList.contains("min"));
 });
 
@@ -296,39 +311,62 @@ function drawStatic() {
   c.fillStyle = "#0b0b0d"; c.fill(C.water, "evenodd");
   for (const g of C.groups) {
     if (!show[g.cls]) continue;
-    if (g.cls === 0) { c.strokeStyle = "rgba(152,124,255,.58)"; c.lineWidth = 1.1 * zf * px; }
-    else if (g.cls === 2) { c.strokeStyle = "rgba(158,176,138,.8)"; c.lineWidth = 1.7 * zf * px; }
+    if (g.cls === 0) { c.strokeStyle = COL.bus.line; c.lineWidth = 1.1 * zf * px; }
+    else if (g.cls === 2) { c.strokeStyle = COL.rail.line; c.lineWidth = 1.7 * zf * px; }
     else { c.strokeStyle = "#" + g.color; c.lineWidth = 2.1 * zf * px; }
     c.stroke(g.path);
   }
 }
 
 // ---------- vehicles ----------
-const TRAMP = [14, 18, 28];                           // seconds of schedule time spent accelerating / braking, by class (bus, metro-tram, rail)
-function easeDist(v, d, vlin) {
-  // Vehicles cross every stop at their scheduled time, but slow to a halt into it and pull away out of it: the linear progress x
-  // inside a stop-to-stop interval is warped by a cruise speed with cosine ramps at both ends.
+// Motion physics, by class (bus, metro/tram, rail): average acceleration (m/s^2; the smooth S-curve ramps peak at ~1.57x this)
+// and time stopped at each station (s).
+const ACC = [0.8, 0.85, 0.7], DWELL = [12, 20, 30], PXM = 20;          // PXM: metres per world pixel
+function timeAtDist(v, x, departing) {
+  // When does the scheduled (piecewise-linear) motion reach distance x? At a stop the vehicle may already be standing (arrival < departure):
+  // departing = true gives the moment it leaves, false the moment it arrives.
+  const D = v.d, T = v.t, m = D.length;
+  let lo = 0, hi = m;                                                   // lo..hi: first index with D[i] > x (departing) or D[i] >= x (arriving)
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (departing ? D[mid] <= x : D[mid] < x) lo = mid + 1; else hi = mid; }
+  if (departing) { if (lo >= m) return T[m - 1]; const j = lo - 1; if (j < 0) return T[0]; return T[j] + (x - D[j]) / (D[lo] - D[j]) * (T[lo] - T[j]); }
+  if (lo >= m) return T[m - 1]; if (lo === 0) return T[0];
+  return T[lo - 1] + (x - D[lo - 1]) / (D[lo] - D[lo - 1]) * (T[lo] - T[lo - 1]);
+}
+function easeDist(v, d, tt) {
+  // The timetable fixes when a vehicle is at each stop. Between two stops it stands for a dwell (centred on the scheduled moment), accelerates
+  // smoothly, cruises and brakes smoothly, arriving exactly on schedule. The cruise speed solves  vc * (Tm - vc/a) = distance  (Tm = run time minus dwell);
+  // a tight schedule shortens the dwell first, then falls back to harder acceleration. Everything is computed from the interval's own scheduled
+  // times, so the motion is continuous no matter how the timetable was thinned.
   const S = v.pat, n = S ? S.length : 0;
-  if (n < 2 || d <= S[0] || d >= S[n - 1] || vlin <= 0) return d;
+  if (n < 2 || d <= S[0] || d >= S[n - 1]) return d;
   let lo = 0, hi = n - 1;
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (S[m] <= d) lo = m; else hi = m; }
   const a = S[lo], L = S[hi] - a;
   if (L < 1) return d;
-  const x = d - a, R = Math.min(vlin * TRAMP[v.shape.cls], 0.45 * L);
-  if (R < 0.4) return d;
-  const c = L / (L - R), K = R / (2 * Math.PI);
-  let H;
-  if (x < R) H = x / 2 - K * Math.sin(Math.PI * x / R);
-  else if (x <= L - R) H = R / 2 + (x - R);
-  else { const tau = x - (L - R); H = R / 2 + (L - 2 * R) + tau / 2 + K * Math.sin(Math.PI * tau / R); }
-  return a + c * H;
+  const t0 = timeAtDist(v, a, true), t1 = timeAtDist(v, S[hi], false), Trun = t1 - t0;
+  if (!(Trun > 2)) return d;
+  const cls = v.shape.cls, ap = ACC[cls] / PXM, Tmin = 2 * Math.sqrt(L / ap);
+  let Dw = Math.min(DWELL[cls], 0.3 * Trun), Tm = Trun - Dw;
+  if (Tm < 1.15 * Tmin) { Dw = Math.max(0, Trun - 1.15 * Tmin); Tm = Trun - Dw; }
+  if (Tm < 2) return d;
+  const disc = Tm * Tm - 4 * L / ap;
+  let vc, tr;
+  if (disc >= 0) { vc = ap / 2 * (Tm - Math.sqrt(disc)); tr = vc / ap; } else { vc = 2 * L / Tm; tr = Tm / 2; }
+  const tau = tt - t0 - Dw / 2, K = tr / (2 * Math.PI);                 // time since the vehicle started moving
+  if (tau <= 0) return a;
+  if (tau >= Tm) return a + L;
+  let y;
+  if (tau < tr) y = vc * (tau / 2 - K * Math.sin(Math.PI * tau / tr));
+  else if (tau <= Tm - tr) y = vc * (tr / 2 + tau - tr);
+  else { const sg = tau - (Tm - tr); y = vc * (tr / 2 + (Tm - 2 * tr) + sg / 2 + K * Math.sin(Math.PI * sg / tr)); }
+  return a + y;
 }
 function locate(v, tt, k, pos, hd) {
   const ts = v.t; let lo = 0, hi = ts.length - 1;
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (ts[m] <= tt) lo = m; else hi = m; }
   const span = ts[hi] - ts[lo], f = span > 0 ? (tt - ts[lo]) / span : 0;
   let d = v.d[lo] + (v.d[hi] - v.d[lo]) * f;
-  if (span > 0) d = easeDist(v, d, (v.d[hi] - v.d[lo]) / span);
+  d = easeDist(v, d, tt);
   const sh = v.shape, cum = sh.cum;
   let a = 0, b = sh.n - 1;
   while (b - a > 1) { const m = (a + b) >> 1; if (cum[m] <= d) a = m; else b = m; }
@@ -368,7 +406,7 @@ function drawDots() {
       const x = pos[2*k] * s + view.x, y = pos[2*k+1] * s + view.y;
       if (x < -10 || y < -10 || x > vw + 10 || y > vh + 10) continue;
       const r = (big ? 2.6 : 1.7) * zf;
-      ctx.globalAlpha = alpha[k];
+      ctx.globalAlpha = alpha[k] * (heat ? 0.5 : 1);
       if (big) { ctx.fillStyle = "rgba(255,255,255,.16)"; ctx.beginPath(); ctx.arc(x, y, r * 2, 0, 6.2832); ctx.fill(); }
       ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
     }
@@ -378,16 +416,71 @@ function drawDots() {
     ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(pos[2*k] * s + view.x, pos[2*k+1] * s + view.y, 8, 0, 6.2832); ctx.stroke(); }
 }
 
+// ---------- density heatmap ----------
+// Vehicles running per ~200 m cell (blurred), coloured against the city's peak: the cell value that the busiest 2% of
+// covered cells reach at the city's peak moment of the day.
+const HC = 10, heatLUT = new Uint8ClampedArray(256 * 4);
+for (let i = 0; i < 256; i++) {
+  const v = i / 255, st = [[0, 0, 0, 0, 0], [.12, 60, 25, 130, 70], [.4, 180, 40, 130, 150], [.7, 250, 120, 40, 195], [1, 255, 232, 120, 220]];
+  let j = 1; while (j < st.length - 1 && v > st[j][0]) j++;
+  const a = st[j-1], b = st[j], f = (v - a[0]) / (b[0] - a[0]);
+  for (let k = 0; k < 4; k++) heatLUT[4*i + k] = a[k+1] + (b[k+1] - a[k+1]) * f;
+}
+let heat = false, hcv = document.createElement("canvas"), hctx = hcv.getContext("2d"), hGrid = null, hTmp = null, hImg = null;
+function heatSetup() {
+  const gw = Math.ceil(C.world.w / HC), gh = Math.ceil(C.world.h / HC);
+  if (hGrid && hGrid.gw === gw && hGrid.gh === gh) return;
+  hGrid = { gw, gh, a: new Float32Array(gw * gh) }; hTmp = new Float32Array(gw * gh);
+  hcv.width = gw; hcv.height = gh; hImg = hctx.createImageData(gw, gh);
+}
+function heatBlur() {                                   // [1 2 1] x [1 2 1] smoothing, in place
+  const { gw, gh, a } = hGrid, b = hTmp;
+  for (let y = 0; y < gh; y++) for (let x = 0, o = y * gw; x < gw; x++, o++)
+    b[o] = (a[o] * 2 + (x > 0 ? a[o-1] : 0) + (x < gw - 1 ? a[o+1] : 0)) * .25;
+  for (let y = 0; y < gh; y++) for (let x = 0, o = y * gw; x < gw; x++, o++)
+    a[o] = (b[o] * 2 + (y > 0 ? b[o-gw] : 0) + (y < gh - 1 ? b[o+gw] : 0)) * .25;
+}
+function heatAccumulate(px, py, w) { const { gw, gh, a } = hGrid, x = (px / HC) | 0, y = (py / HC) | 0; if (x >= 0 && y >= 0 && x < gw && y < gh) a[y * gw + x] += w; }
+function heatCalibrate() {                              // find the peak moment, then the 98th-percentile cell value there
+  const { vs, NV } = C; let bestT = C.tMin, bestN = -1;
+  for (let tt = C.tMin; tt <= C.tMax; tt += 600) { let n = 0; for (let k = 0; k < NV; k++) if (tt >= vs[k].t0 && tt <= vs[k].t1) n++; if (n > bestN) { bestN = n; bestT = tt; } }
+  heatSetup(); hGrid.a.fill(0); const p = new Float32Array(2), h = new Float32Array(2);
+  for (let k = 0; k < NV; k++) { const v = vs[k]; if (bestT < v.t0 || bestT > v.t1) continue; locate(v, bestT, 0, p, h); heatAccumulate(p[0], p[1], 1); }
+  heatBlur();
+  const vals = []; for (const x of hGrid.a) if (x > 0.02) vals.push(x);
+  vals.sort((x, y) => x - y);
+  C.heatScale = Math.max(0.5, vals.length ? vals[Math.floor(vals.length * 0.98)] : 1); C.heatPeak = { t: bestT, n: bestN };
+}
+function drawHeat() {
+  if (!heat || !C) return;
+  if (!C.heatScale) heatCalibrate();
+  heatSetup(); const { gw, gh, a } = hGrid, { pos, live, alpha, NV, vs } = C; a.fill(0);
+  for (let k = 0; k < NV; k++) if (live[k] && alpha[k] > 0) heatAccumulate(pos[2*k], pos[2*k+1], alpha[k]);
+  heatBlur();
+  const d = hImg.data, inv = 255 / C.heatScale;
+  for (let i = 0; i < a.length; i++) {
+    const q = Math.min(255, Math.pow(Math.min(1, a[i] / C.heatScale), 0.75) * 255 | 0) * 4;
+    d[4*i] = heatLUT[q]; d[4*i+1] = heatLUT[q+1]; d[4*i+2] = heatLUT[q+2]; d[4*i+3] = heatLUT[q+3];
+  }
+  hctx.putImageData(hImg, 0, 0);
+  const s = view.s; ctx.setTransform(dpr*s, 0, 0, dpr*s, dpr*view.x, dpr*view.y); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(hcv, 0, 0, gw * HC, gh * HC);
+}
+function setHeat(on) { heat = on; $("heat").setAttribute("aria-pressed", on); $("legend").classList.toggle("on", on); }
+$("heat").addEventListener("click", () => setHeat(!heat));
+
 // ---------- UI ----------
 const fmt = tt => { const m = Math.floor(tt / 60) % 1440; return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); };
 const timeEl = $("time"); timeEl.step = 30;
 function setTime(v, userSet) { t = v; if (userSet) loopStart = v; timeEl.value = t; $("clock").textContent = fmt(t); }
 timeEl.addEventListener("input", () => { scrubbed = true; setTime(+timeEl.value, true); });
+function paintChips() { document.querySelectorAll('i[data-chipcol]').forEach(i => i.style.background = COL[i.dataset.chipcol].chip); }
+paintChips();
 function setMin(on) { document.body.classList.toggle("min", on); closeMenu(); if (on) tip.style.display = "none"; }
 $("hide").addEventListener("click", () => setMin(true)); $("restore").addEventListener("click", () => setMin(false));
 $("play").addEventListener("click", () => { playing = !playing; $("play").textContent = playing ? "❚❚" : "▶"; });
 $("speed").addEventListener("change", e => speed = +e.target.value);
-document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+document.querySelectorAll(".chip[data-cls]").forEach(b => b.addEventListener("click", () => {
   const c = +b.dataset.cls; show[c] = !show[c]; b.setAttribute("aria-pressed", show[c]); staticDirty = true;
   if (selected >= 0 && !show[C.vs[selected].shape.cls]) selected = -1; }));
 
@@ -426,7 +519,7 @@ const tip = $("tip");
 function updateTip() {
   const k = C && selected >= 0 && C.live[selected] ? selected : hover;
   if (!C || k < 0 || !C.live[k]) { tip.style.display = "none"; return; }
-  const v = C.vs[k], r = C.routes[v.route], hd = C.heads[v.head], col = v.shape.cls === 0 ? "#6a4fd8" : v.shape.cls === 2 ? "#6c7f58" : "#" + v.shape.color;
+  const v = C.vs[k], r = C.routes[v.route], hd = C.heads[v.head], col = v.shape.cls === 0 ? COL.bus.tip : v.shape.cls === 2 ? COL.rail.tip : "#" + v.shape.color;
   const kind = ["Bus", "Metro / tram", "Regional rail"][v.shape.cls];
   const txt = c => c.replace(/[&<>]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
   const dark = v.shape.cls === 1 && parseInt(v.shape.color, 16) > 0xb0b0b0;
@@ -450,13 +543,13 @@ function frame(now) {
   updateVehicles();
   hover = mouse && !ptrs.size ? nearest(mouse[0], mouse[1], 14) : -1;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(st, 0, 0);
-  drawDots(); updateTip();
+  drawHeat(); drawDots(); updateTip();
   window.__frameMs = (window.__frameMs || 0) * 0.9 + (performance.now() - w0) * 0.1;
   if (now - countAt > 250) { $("count").textContent = C ? nLive.toLocaleString() + " vehicles running" : ""; countAt = now; }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__app = { easeDist, view, get city() { return C; }, get t() { return t; }, set t(v) { t = v; }, dirty() { staticDirty = true; }, get size() { return [vw, vh]; } };   // debugging handle
+window.__app = { COL, paintChips, easeDist, locate, view, get city() { return C; }, get t() { return t; }, set t(v) { t = v; }, dirty() { staticDirty = true; }, get size() { return [vw, vh]; } };   // debugging handle
 
 (async () => {
   try { manifest = await (await fetch("data/cities.json")).json(); }
