@@ -28,7 +28,7 @@
  },
  "new-york": {
   "name": "New York",
-  "sub": "MTA subway & buses",
+  "sub": "MTA & NJ Transit",
   "center": [
    -73.96,
    40.72
@@ -41,8 +41,7 @@
    30,
    34
   ],
-  "coast": true,
-  "credit": "MTA GTFS",
+  "credit": "MTA, NJ Transit GTFS",
   "feeds": [
    {
     "label": "subway",
@@ -71,6 +70,16 @@
    {
     "label": "busco",
     "path": "nyc/busco.zip"
+   },
+   {
+    "label": "njt_rail",
+    "name": "NJ Transit rail",
+    "path": "nyc/njt_rail.zip"
+   },
+   {
+    "label": "njt_bus",
+    "name": "NJ Transit bus",
+    "path": "nyc/njt_bus.zip"
    }
   ]
  },
@@ -89,7 +98,6 @@
    26,
    28
   ],
-  "coast": true,
   "credit": "MBTA GTFS",
   "feeds": [
    {
@@ -113,7 +121,6 @@
    32,
    36
   ],
-  "coast": true,
   "credit": "CTA, Metra GTFS",
   "feeds": [
    {
@@ -123,6 +130,33 @@
    {
     "label": "metra",
     "path": "chicago/metra.zip"
+   }
+  ]
+ },
+ "los-angeles": {
+  "name": "Los Angeles",
+  "sub": "LA Metro",
+  "center": [
+   -118.32,
+   34.03
+  ],
+  "home_km": [
+   44,
+   38
+  ],
+  "ext_km": [
+   46,
+   40
+  ],
+  "credit": "LA Metro GTFS",
+  "feeds": [
+   {
+    "label": "bus",
+    "path": "la/bus.zip"
+   },
+   {
+    "label": "rail",
+    "path": "la/rail.zip"
    }
   ]
  },
@@ -141,7 +175,6 @@
    36,
    34
   ],
-  "coast": true,
   "credit": "SFMTA, BART GTFS",
   "feeds": [
    {
@@ -153,6 +186,144 @@
     "label": "bart",
     "name": "BART",
     "path": "sf/bart.zip"
+   }
+  ]
+ },
+ "san-diego": {
+  "name": "San Diego",
+  "sub": "MTS",
+  "center": [
+   -117.15,
+   32.76
+  ],
+  "home_km": [
+   36,
+   32
+  ],
+  "ext_km": [
+   40,
+   36
+  ],
+  "credit": "San Diego MTS GTFS",
+  "feeds": [
+   {
+    "label": "mts",
+    "path": "sandiego/mts.zip"
+   }
+  ]
+ },
+ "portland": {
+  "name": "Portland",
+  "sub": "TriMet",
+  "center": [
+   -122.66,
+   45.52
+  ],
+  "home_km": [
+   30,
+   26
+  ],
+  "ext_km": [
+   34,
+   30
+  ],
+  "credit": "TriMet GTFS",
+  "feeds": [
+   {
+    "label": "trimet",
+    "path": "portland/trimet.zip"
+   }
+  ]
+ },
+ "minneapolis": {
+  "name": "Minneapolis",
+  "sub": "Metro Transit",
+  "center": [
+   -93.26,
+   44.97
+  ],
+  "home_km": [
+   34,
+   30
+  ],
+  "ext_km": [
+   38,
+   34
+  ],
+  "credit": "Metro Transit GTFS",
+  "feeds": [
+   {
+    "label": "metro",
+    "path": "minneapolis/metro.zip"
+   }
+  ]
+ },
+ "atlanta": {
+  "name": "Atlanta",
+  "sub": "MARTA",
+  "center": [
+   -84.39,
+   33.78
+  ],
+  "home_km": [
+   32,
+   30
+  ],
+  "ext_km": [
+   36,
+   34
+  ],
+  "credit": "MARTA GTFS",
+  "feeds": [
+   {
+    "label": "marta",
+    "path": "atlanta/marta.zip"
+   }
+  ]
+ },
+ "miami": {
+  "name": "Miami",
+  "sub": "Miami-Dade Transit",
+  "center": [
+   -80.24,
+   25.8
+  ],
+  "home_km": [
+   28,
+   38
+  ],
+  "ext_km": [
+   32,
+   42
+  ],
+  "credit": "Miami-Dade Transit GTFS",
+  "feeds": [
+   {
+    "label": "mdt",
+    "path": "miami/mdt.zip"
+   }
+  ]
+ },
+ "toronto": {
+  "name": "Toronto",
+  "sub": "TTC",
+  "center": [
+   -79.4,
+   43.72
+  ],
+  "home_km": [
+   32,
+   24
+  ],
+  "ext_km": [
+   34,
+   26
+  ],
+  "credit": "TTC GTFS",
+  "feeds": [
+   {
+    "label": "ttc",
+    "path": "toronto/ttc.zip"
    }
   ]
  },
@@ -202,33 +373,81 @@
    }
   ]
  },
- "toronto": {
-  "name": "Toronto",
-  "sub": "TTC",
+ "vienna": {
+  "name": "Vienna",
+  "sub": "Wiener Linien",
   "center": [
-   -79.4,
-   43.72
+   16.37,
+   48.21
   ],
   "home_km": [
-   32,
-   24
+   26,
+   22
+  ],
+  "ext_km": [
+   30,
+   26
+  ],
+  "credit": "Wiener Linien open data",
+  "feeds": [
+   {
+    "label": "wl",
+    "path": "vienna/wl.zip"
+   }
+  ],
+  "prefilter": true
+ },
+ "amsterdam": {
+  "name": "Amsterdam",
+  "sub": "GVB, NS & more",
+  "center": [
+   4.9,
+   52.37
+  ],
+  "home_km": [
+   30,
+   26
   ],
   "ext_km": [
    34,
-   26
+   30
   ],
-  "coast": true,
-  "credit": "TTC GTFS",
+  "prefilter": true,
+  "credit": "OVapi / NL GTFS",
   "feeds": [
    {
-    "label": "ttc",
-    "path": "toronto/ttc.zip"
+    "label": "nl",
+    "path": "amsterdam/nl.zip"
+   }
+  ]
+ },
+ "helsinki": {
+  "name": "Helsinki",
+  "sub": "HSL",
+  "center": [
+   24.94,
+   60.19
+  ],
+  "home_km": [
+   30,
+   26
+  ],
+  "ext_km": [
+   34,
+   30
+  ],
+  "prefilter": true,
+  "credit": "HSL GTFS",
+  "feeds": [
+   {
+    "label": "hsl",
+    "path": "helsinki/hsl.zip"
    }
   ]
  },
  "hong-kong": {
   "name": "Hong Kong",
-  "sub": "KMB, Citybus, minibuses & more",
+  "sub": "MTR, Light Rail, trams, buses & more",
   "center": [
    114.17,
    22.34
@@ -241,12 +460,66 @@
    30,
    24
   ],
-  "coast": true,
-  "credit": "Transport Department GTFS",
+  "credit": "HK Transport Department GTFS, Hong Kong Community GTFS (ODbL)",
   "feeds": [
    {
     "label": "td",
+    "name": "Buses & trams",
     "path": "hongkong/td.zip"
+   },
+   {
+    "label": "mtr",
+    "name": "MTR & Light Rail",
+    "path": "hongkong/community.zip",
+    "agencies": [
+     "MTRR",
+     "LR"
+    ]
+   }
+  ],
+  "route_snap": true
+ },
+ "melbourne": {
+  "name": "Melbourne",
+  "sub": "PTV trains, trams & buses",
+  "center": [
+   144.97,
+   -37.83
+  ],
+  "home_km": [
+   34,
+   30
+  ],
+  "ext_km": [
+   40,
+   34
+  ],
+  "prefilter": true,
+  "credit": "Public Transport Victoria GTFS",
+  "feeds": [
+   {
+    "label": "train",
+    "name": "Train",
+    "path": "melbourne/ptv.zip",
+    "inner": "2/google_transit.zip"
+   },
+   {
+    "label": "tram",
+    "name": "Tram",
+    "path": "melbourne/ptv.zip",
+    "inner": "3/google_transit.zip"
+   },
+   {
+    "label": "bus",
+    "name": "Bus",
+    "path": "melbourne/ptv.zip",
+    "inner": "4/google_transit.zip"
+   },
+   {
+    "label": "sky",
+    "name": "SkyBus",
+    "path": "melbourne/ptv.zip",
+    "inner": "11/google_transit.zip"
    }
   ]
  }

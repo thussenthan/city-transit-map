@@ -77,4 +77,30 @@ for cl, b in rows:
         if ln.geom_type == "LineString" and len(ln.coords) > 1:
             roads.append([RANK[cl], np.round(np.array(ln.coords), 6).tolist()])
 json.dump({"water": water, "parks": parks, "roads": roads}, open(os.path.join(out_dir, "base_raw.json"), "w"))
+
+if cfg.get("route_snap"):                      # drivable road graph, used by build_city.py to snap bus routes to roads
+    print("routing graph", flush=True)
+    rows = q(f"""SELECT class, ST_AsWKB(geometry) FROM read_parquet('{base}/theme=transportation/type=segment/*', hive_partitioning=1)
+                 WHERE {where_box} AND subtype = 'road' AND class IN
+                 ('motorway','trunk','primary','secondary','tertiary','residential','unclassified','living_street','service')""")
+    lines, pen = [], []
+    for cl, b in rows:
+        g = wkb.loads(bytes(b))
+        for ln in (g.geoms if hasattr(g, "geoms") else [g]):
+            if ln.geom_type == "LineString" and len(ln.coords) > 1:
+                lines.append(np.array(ln.coords)); pen.append(3.0 if cl == "service" else 1.0)
+    allp = np.concatenate(lines)
+    ik = np.rint(allp * 1e6).astype(np.int64)
+    key = (ik[:, 0] + 200_000_000) * 400_000_000 + (ik[:, 1] + 100_000_000)
+    uniq, inv = np.unique(key, return_inverse=True)
+    node = np.column_stack([(uniq // 400_000_000 - 200_000_000) / 1e6, (uniq % 400_000_000 - 100_000_000) / 1e6])
+    offs = np.cumsum([0] + [len(l) for l in lines])
+    u = np.concatenate([inv[offs[i]:offs[i + 1] - 1] for i in range(len(lines))])
+    v = np.concatenate([inv[offs[i] + 1:offs[i + 1]] for i in range(len(lines))])
+    pw = np.concatenate([np.full(len(l) - 1, pen[i]) for i, l in enumerate(lines)])
+    ok = u != v; u, v, pw = u[ok], v[ok], pw[ok]
+    dx = (node[v, 0] - node[u, 0]) * 111320 * np.cos(np.radians(clat)); dy = (node[v, 1] - node[u, 1]) * 110540
+    np.savez_compressed(os.path.join(out_dir, "graph.npz"), node=node, u=u.astype(np.int32), v=v.astype(np.int32),
+                        w=(np.hypot(dx, dy) * pw).astype(np.float32))
+    print(f"  graph: {len(node)} nodes, {len(u)} edges", flush=True)
 print(f"DONE {a.city}: water rings {len(water)}, parks {len(parks)}, roads {len(roads)}", flush=True)

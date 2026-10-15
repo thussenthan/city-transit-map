@@ -60,7 +60,7 @@
   #loading span::before { content:""; display:inline-block; width:14px; height:14px; margin-right:10px; vertical-align:-2px; border-radius:50%;
                           border:2px solid var(--faint); border-top-color:#fff; animation:spin .8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
-  @media (max-width:560px) { .hint { display:none; } .zoom { display:none; } .title .s2 { display:none; } }
+  @media (max-width:560px) { .zoom { display:none; } .title .s2 { display:none; } }
 </style>
 </head>
 <body>
@@ -84,12 +84,10 @@
     <button class="chip" data-cls="1" aria-pressed="true"><i style="background:linear-gradient(90deg,#fff 0 33%,#bbb 33% 66%,#888 66%)"></i>Metro &amp; tram</button>
     <button class="chip" data-cls="2" aria-pressed="true"><i style="background:#46e1c8"></i>Regional rail</button>
     <button class="chip" data-cls="0" aria-pressed="true"><i style="background:#6096eb"></i>Bus</button>
-    <span class="spacer"></span>
-    <label class="loop"><input type="checkbox" id="loop" checked> Loop 20 min</label>
   </div>
 </div>
 <div id="loading"><span id="loadmsg">Loading…</span></div>
-<div class="foot">basemap © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, Overture Maps · <span id="credit">open GTFS timetables</span><span class="hint"> · drag to pan, scroll to zoom, hover a dot for its route</span></div>
+<div class="foot">basemap © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, Overture Maps · <span id="credit">open GTFS timetables</span></div>
 
 <script>
 (() => {
@@ -99,7 +97,7 @@ const st = document.createElement("canvas"), sctx = st.getContext("2d");
 let dpr = 1, vw = 0, vh = 0;
 const view = { s: 1, x: 0, y: 0 };
 const show = { 0: true, 1: true, 2: true };
-let t = 8 * 3600, loopStart = t, playing = true, speed = 120, loop = true;
+let t = 8 * 3600, loopStart = t, playing = true, speed = 120, loop = false;
 let staticDirty = true, hover = -1, selected = -1, mouse = null;
 let C = null;                                       // current city
 let manifest = [], loadToken = 0;
@@ -168,8 +166,8 @@ async function select(id, replace) {
   $("loading").classList.remove("on");
   C = c; selected = hover = -1;
   const ds = c.data.dates || {}, uniq = [...new Set(Object.values(ds))];
-  $("cdate").textContent = "every scheduled vehicle · " + (uniq.length > 1
-    ? "timetables: " + Object.entries(ds).map(([k, v]) => k + " " + fmtShort(v)).join(", ")
+  $("cdate").textContent = (uniq.length > 1
+    ? "Timetables: " + Object.entries(ds).map(([k, v]) => k + " " + fmtShort(v)).join(", ")
     : fmtDate(c.date) + " timetable");
   timeEl.min = c.tMin; timeEl.max = c.tMax;
   if (t < c.tMin || t > c.tMax) setTime(Math.min(Math.max(t, c.tMin), c.tMax), true); else timeEl.value = t;
@@ -296,7 +294,6 @@ function setTime(v, userSet) { t = v; if (userSet) loopStart = v; timeEl.value =
 timeEl.addEventListener("input", () => setTime(+timeEl.value, true));
 $("play").addEventListener("click", () => { playing = !playing; $("play").textContent = playing ? "❚❚" : "▶"; });
 $("speed").addEventListener("change", e => speed = +e.target.value);
-$("loop").addEventListener("change", e => { loop = e.target.checked; loopStart = t; });
 document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
   const c = +b.dataset.cls; show[c] = !show[c]; b.setAttribute("aria-pressed", show[c]); staticDirty = true;
   if (selected >= 0 && !show[C.vs[selected].shape.cls]) selected = -1; }));

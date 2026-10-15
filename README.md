@@ -1,11 +1,11 @@
 # Transit in Motion
 
 Every scheduled bus, train and tram in a city, animated from its open GTFS timetable. One page, one tab per city:
-**Philadelphia, New York, Boston, Chicago, San Francisco, Paris, Berlin, Toronto, Hong Kong.**
+**Philadelphia, New York, Boston, Chicago, Los Angeles, San Francisco, San Diego, Portland, Minneapolis, Atlanta, Miami, Toronto, Paris, Berlin, Vienna, Amsterdam, Helsinki, Hong Kong, Melbourne.**
 
 Live: <https://thussenthan.github.io/philly-transit-map/>
 
-Pan and zoom, scrub or play through the day (default: a 20-minute loop from 08:00), filter by mode, and hover or click any dot for its route. Deep links work (`#paris`). Keys: `space` play/pause, `[` `]` previous/next city.
+Pan and zoom, scrub or play through the service day (starts at 08:00), filter by mode, and hover or click any dot for its route. Deep links work (`#paris`). Keys: `space` play/pause, `[` `]` previous/next city.
 
 Inspired by the Vienna "every scheduled vehicle" map on r/MapPorn. `media/philadelphia.mp4` is a 10-second video version of the same idea.
 
@@ -18,16 +18,26 @@ Vehicle positions are interpolated along each route's shape between scheduled st
 | City | Feeds |
 |---|---|
 | Philadelphia | SEPTA bus/trolley/subway + Regional Rail |
-| New York | MTA subway + five borough bus feeds + MTA Bus (no LIRR/Metro-North: feeds not publicly downloadable) |
+| New York | MTA subway + five borough bus feeds + MTA Bus, NJ Transit bus and rail (no LIRR/Metro-North: feeds not publicly downloadable) |
 | Boston | MBTA (subway, bus, commuter rail) |
 | Chicago | CTA + Metra |
+| Los Angeles | LA Metro bus and rail |
 | San Francisco | SFMTA Muni (feed published only through Aug 2026, so Muni shows Tue 2026-08-25) + BART |
-| Paris | Île-de-France Mobilités (metro, RER/Transilien, tram, bus), no shapes in feed so lines are stop-to-stop |
-| Berlin | VBB |
+| San Diego | MTS |
+| Portland | TriMet |
+| Minneapolis | Metro Transit |
+| Atlanta | MARTA |
+| Miami | Miami-Dade Transit |
 | Toronto | TTC |
-| Hong Kong | Transport Department routes (KMB, Citybus, minibuses, etc.; no MTR in that feed) |
+| Paris | Île-de-France Mobilités (metro, RER/Transilien, tram, bus); no shapes in the feed so lines are stop-to-stop |
+| Berlin | VBB |
+| Vienna | Wiener Linien and regional operators (VOR) |
+| Amsterdam | Dutch national GTFS (OVapi), clipped to the Amsterdam area |
+| Helsinki | HSL |
+| Hong Kong | Transport Department routes (KMB, Citybus, minibuses, trams) snapped to roads (no shapes in the feed) + MTR and Light Rail from the Hong Kong Community GTFS |
+| Melbourne | PTV trains, trams, buses, SkyBus |
 
-Not included: cities with no open key-free GTFS (Tokyo, Washington DC, Singapore, Shanghai, Beijing).
+Not included: cities with no open key-free GTFS (Tokyo, Washington DC, Singapore, Shanghai, Beijing). Many feeds only cover bus/tram/metro agencies that publish open data; commuter rail may be missing.
 Scheduled service only, not real-time. Each city only covers the agencies listed above.
 
 ## Rebuild
@@ -44,5 +54,5 @@ python3 -m http.server   # the page needs http (it fetches data/*.bin)
 
 ## Credits
 
-Schedules: SEPTA, MTA, MBTA, CTA, Metra, SFMTA, BART, Île-de-France Mobilités, VBB, TTC and Hong Kong Transport Department open data.
+Schedules: the agencies' open data (SEPTA, MTA, NJ Transit, MBTA, CTA, Metra, LA Metro, SFMTA, BART, San Diego MTS, TriMet, Metro Transit, MARTA, Miami-Dade Transit, TTC, Île-de-France Mobilités, VBB, Wiener Linien, OVapi, HSL, Hong Kong Transport Department, Hong Kong Community GTFS, Public Transport Victoria).
 Basemap: © OpenStreetMap contributors, via Overture Maps Foundation (ODbL).

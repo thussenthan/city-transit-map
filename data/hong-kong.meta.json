@@ -1,1 +1,1 @@
-{"id": "hong-kong", "name": "Hong Kong", "sub": "KMB, Citybus, minibuses & more", "credit": "Transport Department GTFS", "date": "20261020", "dates": {"td": "20261020"}, "vehicles": 144301, "bytes": 1404371}
+{"id": "hong-kong", "name": "Hong Kong", "sub": "MTR, Light Rail, trams, buses & more", "credit": "HK Transport Department GTFS, Hong Kong Community GTFS (ODbL)", "date": "20261020", "dates": {"Buses & trams": "20261020", "MTR & Light Rail": "20261020"}, "vehicles": 150052, "bytes": 2535986}

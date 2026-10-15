@@ -71,13 +71,16 @@ def secs_col(s):
     return (pd.to_numeric(p[0], errors="coerce") * 3600 + pd.to_numeric(p[1], errors="coerce") * 60
             + pd.to_numeric(p[2], errors="coerce")).to_numpy()
 
-def feed_dir(spec):
+def feed_dir(spec, inner=None):
+    """GTFS folder for a feed: an unzipped dir, a .zip, or (inner=...) a .zip nested inside a .zip (Melbourne)."""
+    import io
     p = os.path.join(args.feeds, spec)
     if p.endswith(".zip"):
-        d = os.path.join(WORK, "gtfs_" + os.path.basename(p)[:-4])
+        d = os.path.join(WORK, "gtfs_" + os.path.basename(p)[:-4] + ("_" + inner.replace("/", "_")[:-4] if inner else ""))
         if not os.path.exists(os.path.join(d, "routes.txt")):
             os.makedirs(d, exist_ok=True)
-            with zipfile.ZipFile(p) as z:
+            with zipfile.ZipFile(p) as outer:
+                z = zipfile.ZipFile(io.BytesIO(outer.read(inner))) if inner else outer
                 for n in z.namelist():
                     if n.endswith(".txt"):
                         open(os.path.join(d, os.path.basename(n)), "wb").write(z.read(n))
@@ -159,6 +162,45 @@ def project(cum, seg_a, seg_ab, seg_len, pts):
         prev_seg += i; prev_d = max(prev_d, cum[prev_seg] + t[i] * sl[i]); out.append(prev_d)
     return np.array(out)
 
+class Router:
+    """Snap stop sequences to the road graph (fetch_base.py graph.npz): shortest road path between consecutive stops."""
+    def __init__(self):
+        from scipy.sparse import csr_matrix
+        from scipy.spatial import cKDTree
+        z = np.load(os.path.join(WORK, "graph.npz"))
+        nx, ny = to_px(z["node"][:, 0], z["node"][:, 1]); self.P = np.column_stack([nx, ny]); n = len(self.P)
+        u, v, w = z["u"].astype(np.int64), z["v"].astype(np.int64), z["w"].astype(np.float64) / MPP
+        a, b = np.minimum(u, v), np.maximum(u, v)
+        o = np.lexsort((w, b * n + a)); a, b, w = a[o], b[o], w[o]          # keep the lightest of duplicate edges
+        first = np.r_[True, (a[1:] != a[:-1]) | (b[1:] != b[:-1])]; a, b, w = a[first], b[first], w[first]
+        self.g = csr_matrix((np.r_[w, w], (np.r_[a, b], np.r_[b, a])), shape=(n, n))
+        self.tree = cKDTree(self.P); self.cache = {}
+        print(f"  router: {n} nodes, {len(a)} edges", flush=True)
+    def path(self, a, b):
+        k = (a, b)
+        if k not in self.cache:
+            from scipy.sparse.csgraph import dijkstra
+            chord = float(np.hypot(*(self.P[a] - self.P[b])))
+            dist, pred = dijkstra(self.g, directed=True, indices=a, return_predecessors=True, limit=max(chord * 8.0, 80.0))
+            if not np.isfinite(dist[b]): self.cache[k] = None
+            else:
+                p = [b]
+                while p[-1] != a: p.append(int(pred[p[-1]]))
+                self.cache[k] = self.P[p[::-1]]
+        return self.cache[k]
+    def route(self, pts):
+        d, idx = self.tree.query(pts); ok = d <= 12.0                      # stop within ~240 m of a road
+        out = [pts[0]]
+        for i in range(1, len(pts)):
+            pa = self.path(idx[i - 1], idx[i]) if ok[i - 1] and ok[i] and idx[i - 1] != idx[i] else None
+            if pa is not None: out.extend(pa)
+            elif np.hypot(*(pts[i] - pts[i - 1])) > 60.0: return None        # long unroutable jump (e.g. cross-border): skip the trip
+            out.append(pts[i])
+        out = np.array(out); keep = np.r_[True, np.hypot(*np.diff(out, axis=0).T) > 1e-6]
+        return out[keep]
+
+ROUTER = Router() if CFG.get("route_snap") and os.path.exists(os.path.join(WORK, "graph.npz")) else None
+
 shapes, shape_meta, routes, route_idx, heads, head_idx = [], {}, [], {}, [], {}
 veh, T, D = [], [], []
 agencies, dates_used, feed_dates = [], [], []
@@ -166,8 +208,9 @@ IN = 40.0                                                   # px margin around t
 
 def process_feed(fspec):
     label, spec = fspec["label"], fspec["path"]
-    d = feed_dir(spec); t0 = time.time()
+    d = feed_dir(spec, fspec.get("inner")); t0 = time.time()
     rts = csv(d, "routes.txt"); trips = csv(d, "trips.txt"); stops = csv(d, "stops.txt")
+    if fspec.get("agencies"): rts = rts[rts.agency_id.isin(fspec["agencies"])]      # use only some agencies from a mixed feed
     date, on, counts = pick_date(d, trips)
     print(f"  [{label}] date {date} ({counts[0]} trips on first candidate, max {max(counts)})", flush=True)
     dates_used.append(date); feed_dates.append((fspec.get("name") or label, date))
@@ -195,14 +238,19 @@ def process_feed(fspec):
     # stop_times, chunked and compacted
     tid_code = {t: i for i, t in enumerate(trips.trip_id.values)}
     tcodes, tarr, tdep, tstop, tseq = [], [], [], [], []
+    PREF = bool(CFG.get("prefilter"))                         # huge national feeds: drop stop rows outside the extent early
     for ch in pd.read_csv(os.path.join(d, "stop_times.txt"), dtype=str, keep_default_na=False, chunksize=1_500_000,
                           usecols=["trip_id", "arrival_time", "departure_time", "stop_id", "stop_sequence"]):
-        ch = ch[ch.trip_id.isin(tid_code)]
-        if not len(ch): continue
+        code = ch.trip_id.map(tid_code); m = code.notna().to_numpy()
+        sid = ch.stop_id.map(sidx).fillna(-1).to_numpy().astype(np.int64)
+        m &= sid >= 0
+        if PREF: m &= s_in[np.maximum(sid, 0)]
+        if not m.any(): continue
+        ch = ch[m]; code = code[m]; sid = sid[m]
         arr, dep = secs_col(ch.arrival_time), secs_col(ch.departure_time)
         arr = np.where(np.isnan(arr), dep, arr); dep = np.where(np.isnan(dep), arr, dep)
-        tcodes.append(ch.trip_id.map(tid_code).to_numpy().astype(np.int32)); tarr.append(arr); tdep.append(dep)
-        tstop.append(ch.stop_id.map(sidx).fillna(-1).to_numpy().astype(np.int32)); tseq.append(pd.to_numeric(ch.stop_sequence).to_numpy())
+        tcodes.append(code.to_numpy().astype(np.int32)); tarr.append(arr); tdep.append(dep)
+        tstop.append(sid.astype(np.int32)); tseq.append(pd.to_numeric(ch.stop_sequence).to_numpy())
     if not tcodes: print("  no stop_times for active trips"); return
     tc, ta, td, ts, tq = (np.concatenate(x) for x in (tcodes, tarr, tdep, tstop, tseq))
     ok = ts >= 0                                              # untimed stops are interpolated per trip below
@@ -238,6 +286,7 @@ def process_feed(fspec):
         tid = codes[tc[a]]; info = tinfo.loc[tid]; cls, color, rshort, rlong = rinfo[info.route_id]
         pkey = (info.shape_id if info.shape_id in shp else None, tuple(si))
         if pkey not in pat_cache:
+            routed = False
             if pkey[0] is not None:
                 if pkey[0] not in geo_cache:
                     xy = shp[pkey[0]]
@@ -247,11 +296,15 @@ def process_feed(fspec):
                 xy = geo_cache[pkey[0]]
                 gk = (label, pkey[0])
             else:
-                xy = sxy[list(si)]; gk = (label, "stops", pkey[1])
+                xy = sxy[list(si)]; gk = (label, "stops", pkey[1]); routed = False
+                if ROUTER is not None and cls == 0 and len(xy) >= 2:
+                    xy = ROUTER.route(xy)
+                    if xy is None: pat_cache[pkey] = None; continue
+                    xy = simp(xy, 0.15); gk = (label, "road", pkey[1]); routed = True
             if len(xy) < 2: pat_cache[pkey] = None
             else:
                 ab = np.diff(xy, axis=0); sl_ = np.hypot(*ab.T); cum = np.r_[0, np.cumsum(sl_)]
-                dist = project(cum, xy[:-1], ab, sl_, sxy[list(si)]) if pkey[0] is not None else cum
+                dist = project(cum, xy[:-1], ab, sl_, sxy[list(si)]) if (pkey[0] is not None or routed) else cum
                 pat_cache[pkey] = (gk, xy, dist)
         pc = pat_cache[pkey]
         if pc is None: continue
