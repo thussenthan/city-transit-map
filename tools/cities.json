@@ -117,7 +117,7 @@
  },
  "seoul": {
   "name": "Seoul",
-  "sub": "Subway & rail",
+  "sub": "Subway",
   "center": [
    126.98,
    37.55
@@ -135,10 +135,13 @@
   "credit": "KTDB Korea GTFS",
   "feeds": [
    {
-    "label": "rail",
-    "name": "Subway & rail",
+    "label": "subway",
+    "name": "Subway",
     "path": "seoul/clip",
-    "snap": "rail"
+    "snap": "rail",
+    "route_types": [
+     "1"
+    ]
    }
   ]
  },
@@ -251,31 +254,6 @@
    {
     "label": "tw",
     "path": "taipei/clip"
-   }
-  ]
- },
- "istanbul": {
-  "name": "Istanbul",
-  "sub": "IETT buses",
-  "center": [
-   29.0,
-   41.04
-  ],
-  "home_km": [
-   58,
-   32
-  ],
-  "ext_km": [
-   56,
-   34
-  ],
-  "tz": "Europe/Istanbul",
-  "route_snap": true,
-  "credit": "IETT GTFS",
-  "feeds": [
-   {
-    "label": "iett",
-    "path": "istanbul/iett.zip"
    }
   ]
  },

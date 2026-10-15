@@ -1,7 +1,7 @@
 # City Transit Map
 
 Every scheduled bus, train and tram in a city, animated from its open GTFS timetable. One page, one tab per city:
-**Tokyo, Hong Kong, London, Paris, Seoul, New York, Cairo, Taipei, Istanbul, Berlin, Vienna, Melbourne, Toronto, Jakarta, Chicago, Helsinki, Los Angeles, Boston, Philadelphia, Amsterdam, San Francisco, San Diego, Miami, Atlanta, Portland, Minneapolis** (tabs are ordered by rough annual ridership of each city's agencies, largest first; the ordering is approximate). The page opens on New York; each tab opens at that city's local time, and switching tabs keeps the same moment in the world (minutes stay put, hours shift with the time zone).
+**Tokyo, Hong Kong, London, Paris, Seoul, New York, Cairo, Taipei, Berlin, Vienna, Melbourne, Toronto, Jakarta, Chicago, Helsinki, Los Angeles, Boston, Philadelphia, Amsterdam, San Francisco, San Diego, Miami, Atlanta, Portland, Minneapolis** (tabs are ordered by rough annual ridership of each city's agencies, largest first; the ordering is approximate). The page opens on New York; the first city opens at its current local time, and switching tabs keeps the same moment in the world (the clock just shifts by the time-zone difference, so it keeps running from wherever it was).
 
 Live: <https://thussenthan.github.io/city-transit-map/>
 
@@ -30,9 +30,8 @@ Vehicle positions are interpolated along each route's shape between scheduled st
 | Miami | Miami-Dade Transit |
 | Toronto | TTC |
 | Tokyo | Tokyo-area rail: JR East, Tokyo Metro, Toei and ~40 private railways (community-built GTFS, mkuran.pl; no buses) |
-| Seoul | Subway and rail only, from the KTDB Korea GTFS (no shapes in the feed, so routes are snapped to real track from Overture) |
+| Seoul | Subway only, from the KTDB Korea GTFS (no shapes in the feed, so routes are snapped to real track from Overture) |
 | Taipei | Taiwan TDX GTFS mirror, clipped to Taipei: MRT, rail and buses |
-| Istanbul | IETT buses only, snapped to roads (no shapes in the feed) |
 | Jakarta | KRL Commuter Line only, snapped to track |
 | Cairo | Cairo Metro and Cairo's buses/paratransit (Transport for Cairo; both feeds are from 2025, so the page shows their own dates) |
 | London | Buses from the DfT Bus Open Data Service; Tube, Overground, Elizabeth line, DLR, Tramlink and National Rail from the Great Britain GTFS (Transitous), clipped to London with `tools/clip_gtfs.py`; that feed's rail shapes are stop-to-stop chords, so rail/Tube/tram routes are snapped to real track geometry from Overture |
@@ -44,7 +43,7 @@ Vehicle positions are interpolated along each route's shape between scheduled st
 | Hong Kong | Transport Department routes (KMB, Citybus, minibuses, trams) snapped to roads (no shapes in the feed) + MTR and Light Rail from the Hong Kong Community GTFS |
 | Melbourne | PTV trains, trams, buses, SkyBus |
 
-Not included: cities with no open key-free GTFS (Washington DC, Singapore, Shanghai, Beijing, Guangzhou, Shenzhen, Moscow, Mexico City, São Paulo). Delhi and Madrid publish feeds but only behind a free API key. Many feeds only cover bus/tram/metro agencies that publish open data; commuter rail may be missing.
+Not included: bus-only feeds (Istanbul) and cities with no open key-free GTFS (Washington DC, Singapore, Shanghai, Beijing, Guangzhou, Shenzhen, Moscow, Mexico City, São Paulo). Delhi and Madrid publish feeds but only behind a free API key. Many feeds only cover bus/tram/metro agencies that publish open data; commuter rail may be missing.
 Scheduled service only, not real-time. Each city only covers the agencies listed above.
 
 ## Rebuild
@@ -61,5 +60,5 @@ python3 -m http.server   # the page needs http (it fetches data/*.bin)
 
 ## Credits
 
-Schedules: the agencies' open data (Tokyo rail GTFS by Mikołaj Kuranowski, KTDB, Taiwan TDX, IETT, KAI Commuter, Transport for Cairo, SEPTA, MTA, NJ Transit, MBTA, CTA, Metra, LA Metro, SFMTA, BART, San Diego MTS, TriMet, Metro Transit, MARTA, Miami-Dade Transit, TTC, Île-de-France Mobilités, VBB, Wiener Linien, OVapi, HSL, DfT Bus Open Data Service, Transitous/aubin.app (Great Britain), Hong Kong Transport Department, Hong Kong Community GTFS, Public Transport Victoria).
+Schedules: the agencies' open data (Tokyo rail GTFS by Mikołaj Kuranowski, KTDB, Taiwan TDX, KAI Commuter, Transport for Cairo, SEPTA, MTA, NJ Transit, MBTA, CTA, Metra, LA Metro, SFMTA, BART, San Diego MTS, TriMet, Metro Transit, MARTA, Miami-Dade Transit, TTC, Île-de-France Mobilités, VBB, Wiener Linien, OVapi, HSL, DfT Bus Open Data Service, Transitous/aubin.app (Great Britain), Hong Kong Transport Department, Hong Kong Community GTFS, Public Transport Victoria).
 Basemap: © OpenStreetMap contributors, via Overture Maps Foundation (ODbL).

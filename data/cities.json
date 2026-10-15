@@ -37,7 +37,7 @@
    "Rail, Tube & trams": "20261020"
   },
   "vehicles": 149501,
-  "bytes": 4377266,
+  "bytes": 4377277,
   "tz": "Europe/London"
  },
  {
@@ -56,14 +56,14 @@
  {
   "id": "seoul",
   "name": "Seoul",
-  "sub": "Subway & rail",
+  "sub": "Subway",
   "credit": "KTDB Korea GTFS",
   "date": "20261020",
   "dates": {
-   "Subway & rail": "20261020"
+   "Subway": "20261020"
   },
-  "vehicles": 8213,
-  "bytes": 1843373,
+  "vehicles": 8178,
+  "bytes": 1948372,
   "tz": "Asia/Seoul"
  },
  {
@@ -113,19 +113,6 @@
   "vehicles": 45247,
   "bytes": 1778232,
   "tz": "Asia/Taipei"
- },
- {
-  "id": "istanbul",
-  "name": "Istanbul",
-  "sub": "IETT buses",
-  "credit": "IETT GTFS",
-  "date": "20261020",
-  "dates": {
-   "iett": "20261020"
-  },
-  "vehicles": 7558,
-  "bytes": 1382622,
-  "tz": "Europe/Istanbul"
  },
  {
   "id": "berlin",

@@ -165,27 +165,52 @@ def project(cum, seg_a, seg_ab, seg_len, pts):
 class Router:
     """Snap stop sequences to a network (fetch_base.py graph*.npz): shortest path between consecutive stops.
     allowed: optional {edge class name: cost multiplier} (rail graph) restricting which track a route may use."""
-    def __init__(self, npz="graph.npz", allowed=None, snap_px=12.0, strict=True):
+    def __init__(self, npz="graph.npz", allowed=None, snap_px=12.0, strict=True, densify=0, bridge=0):
         from scipy.sparse import csr_matrix
         from scipy.spatial import cKDTree
         z = np.load(os.path.join(WORK, npz))
         u, v, w = z["u"].astype(np.int64), z["v"].astype(np.int64), z["w"].astype(np.float64) / MPP
+        names = list(z["classes"]) if "classes" in z else []
+        c = z["c"].astype(np.int64) if "c" in z else np.zeros(len(u), np.int64)
         if allowed is not None:
-            names = list(z["classes"]); keep = np.isin(z["c"], [i for i, n in enumerate(names) if n in allowed])
-            mult = np.array([allowed.get(n, 1.0) for n in names])[z["c"]]
-            pri = (mult == 1.0)[keep]                                     # edges of the route's own track type
-            u, v, w = u[keep], v[keep], (w * mult)[keep]
-        if allowed is None: pri = np.ones(len(u), bool)
-        pri_nodes = np.unique(np.r_[u[pri], v[pri]])
+            keep = np.isin(c, [i for i, n in enumerate(names) if n in allowed]); u, v, w, c = u[keep], v[keep], w[keep], c[keep]
         used = np.unique(np.r_[u, v]); remap = -np.ones(len(z["node"]), np.int64); remap[used] = np.arange(len(used))
-        u, v = remap[u], remap[v]; pri_nodes = remap[pri_nodes]
-        nx, ny = to_px(z["node"][used, 0], z["node"][used, 1]); self.P = np.column_stack([nx, ny]); n = len(self.P)
+        u, v = remap[u], remap[v]
+        nx, ny = to_px(z["node"][used, 0], z["node"][used, 1]); P = np.column_stack([nx, ny]); n = len(P)
         a, b = np.minimum(u, v), np.maximum(u, v)
-        o = np.lexsort((w, b * n + a)); a, b, w = a[o], b[o], w[o]          # keep the lightest of duplicate edges
-        first = np.r_[True, (a[1:] != a[:-1]) | (b[1:] != b[:-1])]; a, b, w = a[first], b[first], w[first]
+        o = np.lexsort((w, b * n + a)); a, b, w, c = a[o], b[o], w[o], c[o]       # keep the lightest of duplicate edges
+        first = np.r_[True, (a[1:] != a[:-1]) | (b[1:] != b[:-1])]; a, b, w, c = a[first], b[first], w[first], c[first]
+        if densify:                                                            # long straight edges get intermediate nodes, so stops snap beside the track
+            d = np.hypot(*(P[b] - P[a]).T); k = np.maximum(1, np.ceil(d / densify).astype(np.int64)); lg = k > 1
+            if lg.any():
+                la, lb, lk, lw, lc = a[lg], b[lg], k[lg], w[lg], c[lg]; tot = int((lk - 1).sum())
+                rep = np.repeat(np.arange(len(la)), lk - 1)
+                j = np.arange(tot) - np.repeat(np.cumsum(lk - 1) - (lk - 1), lk - 1) + 1
+                tt = (j / lk[rep])[:, None]; newP = P[la[rep]] * (1 - tt) + P[lb[rep]] * tt
+                nid = n + np.arange(tot); prev = np.where(j == 1, la[rep], nid - 1); last = n + np.cumsum(lk - 1) - 1
+                a = np.concatenate([a[~lg], prev, last]); b = np.concatenate([b[~lg], nid, lb])
+                w = np.concatenate([w[~lg], lw[rep] / lk[rep], lw / lk]); c = np.concatenate([c[~lg], lc[rep], lc])
+                P = np.vstack([P, newP]); n += tot
+        mult = np.array([allowed.get(nm, 1.0) for nm in names])[c] if allowed is not None else np.ones(len(a))
+        pri = mult == 1.0                                                      # edges of the route's own track type
+        w = w * mult
+        if bridge:                                                             # join small disconnected pieces (tunnel portals, data gaps) to the main network
+            from scipy.sparse.csgraph import connected_components
+            comp = csr_matrix((np.ones(len(a)), (a, b)), shape=(n, n)); nc, lab = connected_components(comp, directed=False)
+            if nc > 1:
+                main = int(np.argmax(np.bincount(lab))); mnodes = np.flatnonzero(lab == main); small = np.flatnonzero(lab != main)
+                dq, iq = cKDTree(P[mnodes]).query(P[small]); best = {}
+                for sn, dd_, mi in zip(small, dq, mnodes[iq]):
+                    c_ = lab[sn]
+                    if dd_ <= bridge and (c_ not in best or dd_ < best[c_][0]): best[c_] = (dd_, sn, mi)
+                if best:
+                    ba = np.array([x[1] for x in best.values()]); bb = np.array([x[2] for x in best.values()]); bw = np.array([x[0] * 2.0 for x in best.values()])
+                    a = np.r_[a, np.minimum(ba, bb)]; b = np.r_[b, np.maximum(ba, bb)]; w = np.r_[w, bw]; pri = np.r_[pri, np.zeros(len(ba), bool)]
+        self.P = P
         self.g = csr_matrix((np.r_[w, w], (np.r_[a, b], np.r_[b, a])), shape=(n, n))
-        self.tree = cKDTree(self.P); self.cache = {}; self.snap_px = snap_px
-        self.pri_nodes = pri_nodes; self.pri_tree = cKDTree(self.P[pri_nodes]) if len(pri_nodes) else None; self.strict = strict; self.stats = Counter(); self.failed = []
+        pri_nodes = np.unique(np.r_[a[pri], b[pri]])
+        self.tree = cKDTree(self.P); self.cache = {}; self.snap_px = snap_px; self.strict = strict; self.stats = Counter(); self.failed = []
+        self.pri_nodes = pri_nodes; self.pri_tree = cKDTree(self.P[pri_nodes]) if len(pri_nodes) else None
         print(f"  router {npz} {sorted(allowed) if allowed else 'all'}: {n} nodes, {len(a)} edges", flush=True)
     def path(self, a, b):
         k = (a, b)
@@ -231,7 +256,7 @@ def rail_router(rtype):
                else {"tram": 1.0, "light_rail": 1.0, "monorail": 1.0, "funicular": 1.0} if t in (0, 5, 7, 12)
                else {"standard_gauge": 1.0, "narrow_gauge": 1.0, "subway": 3.0, "light_rail": 2.0})
     key = tuple(sorted(allowed.items()))
-    if key not in RAIL_ROUTERS: RAIL_ROUTERS[key] = Router("graph_rail.npz", allowed, snap_px=10.0, strict=False)
+    if key not in RAIL_ROUTERS: RAIL_ROUTERS[key] = Router("graph_rail.npz", allowed, snap_px=20.0, strict=False, densify=3.0, bridge=20.0)
     return RAIL_ROUTERS[key]
 
 shapes, shape_meta, routes, route_idx, heads, head_idx = [], {}, [], {}, [], {}
