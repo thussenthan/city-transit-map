@@ -13,6 +13,8 @@ Inspired by the Vienna "every scheduled vehicle" map on r/MapPorn. `media/philad
 
 Vehicle positions are interpolated along each route's shape between scheduled stop times (stops are projected onto the shape; feeds without usable shapes (Hong Kong buses, London rail) are snapped to the road or track network, and anything unroutable falls back to stop-to-stop lines; blank times are interpolated by distance; headway-based feeds are expanded into trips). Each city's trips and basemap are packed into `data/<city>.bin` (gzip JSON) and loaded when its tab is opened. Timetables are for a Tuesday (2026-10-20 where the feed covers it).
 
+**Overlapping lines.** Metro, tram and rail lines that share a corridor are drawn side by side, one lane per colour, like a subway map (`bundle_lanes` in `tools/build_city.py`); vehicles ride their own lane. Buses are drawn in violet and regional rail in lime, hues metro lines rarely use.
+
 ## Data and caveats
 
 | City | Feeds |
@@ -29,7 +31,7 @@ Vehicle positions are interpolated along each route's shape between scheduled st
 | Atlanta | MARTA |
 | Miami | Miami-Dade Transit |
 | Toronto | TTC |
-| Tokyo | Tokyo-area rail: JR East, Tokyo Metro, Toei and ~40 private railways (community-built GTFS, mkuran.pl; no buses) |
+| Tokyo | Everything open for the Kanto area: JR East, Tokyo Metro, Toei and ~40 private railways (community-built GTFS, mkuran.pl); Shinkansen and JR limited-express trains, Yurikamome, Disney Resort Line and Yokohama Subway (JR/JBB national feed, snapped to real track); Toei Bus; and ~40 municipal community-bus feeds (GTFS Data Repository Japan). The big private bus companies publish only behind keys, so they're missing |
 | Seoul | Subway only, from the KTDB Korea GTFS (no shapes in the feed, so routes are snapped to real track from Overture) |
 | Taipei | Taiwan TDX GTFS mirror, clipped to Taipei: MRT, rail and buses |
 | Jakarta | KRL Commuter Line only, snapped to track |

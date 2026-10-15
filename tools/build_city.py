@@ -127,7 +127,7 @@ def route_class(rtype):
     if t in (4, 6) or 1000 <= t < 1400: return -1              # ferry / gondola: skipped
     return 0
 
-DEFAULT = {0: "6096EB", 1: "E6E6E6", 2: "46E1C8"}
+DEFAULT = {0: "987CFF", 1: "E6E6E6", 2: "A0F04C"}          # bus = violet, regional rail = lime: hues metro lines rarely use
 def pick_color(cls, c):
     if cls != 1: return DEFAULT[cls]
     c = (c or "").strip().lstrip("#").upper()
@@ -247,6 +247,16 @@ class Router:
 
 ROUTER = Router(densify=5.0) if CFG.get("route_snap") and os.path.exists(os.path.join(WORK, "graph.npz")) else None
 
+def repair_rail_hops(xy, rtype, thresh=100.0):
+    """Rail/metro/tram shapes with long straight hops between stations (stop-to-stop chords): route them along real track."""
+    r = rail_router(rtype); d = np.hypot(*np.diff(xy, axis=0).T)
+    if r is None or d.max() <= thresh: return xy
+    out = [xy[0]]
+    for i in range(1, len(xy)):
+        if d[i - 1] > thresh: out.extend(r.route(np.array([xy[i - 1], xy[i]]), strict=False)[1:])      # falls back to the straight hop if unroutable
+        else: out.append(xy[i])
+    return np.array(out)
+
 def repair_hops(xy, thresh=60.0):
     """Bus/coach shapes that are just a few far-apart points (a chord across the map): route each long hop along roads.
     Returns None if a long hop cannot be routed, so the caller can drop that trip rather than draw a straight line."""
@@ -267,8 +277,8 @@ def rail_router(rtype):
     if not (CFG.get("rail_snap") and os.path.exists(os.path.join(WORK, "graph_rail.npz"))): return None
     try: t = int(rtype)
     except ValueError: t = 2
-    allowed = ({"subway": 1.0, "standard_gauge": 3.0, "light_rail": 2.0} if t == 1
-               else {"tram": 1.0, "light_rail": 1.0, "monorail": 1.0, "funicular": 1.0} if t in (0, 5, 7, 12)
+    allowed = ({"subway": 1.0, "standard_gauge": 3.0, "light_rail": 2.0, "monorail": 2.0} if t == 1 or 400 <= t < 500
+               else {"tram": 1.0, "light_rail": 1.0, "monorail": 1.0, "funicular": 1.0} if t in (0, 5, 7, 12) or 900 <= t < 1000
                else {"standard_gauge": 1.0, "narrow_gauge": 1.0, "subway": 3.0, "light_rail": 2.0})
     key = tuple(sorted(allowed.items()))
     if key not in RAIL_ROUTERS: RAIL_ROUTERS[key] = Router("graph_rail.npz", allowed, snap_px=20.0, strict=False, densify=3.0, bridge=20.0)
@@ -276,6 +286,7 @@ def rail_router(rtype):
 
 shapes, shape_meta, routes, route_idx, heads, head_idx = [], {}, [], {}, [], {}
 veh, T, D = [], [], []
+shape_xy, vrec = {}, []                                     # raw polylines (px) and vehicles awaiting final encoding
 agencies, dates_used, feed_dates = [], [], []
 IN = 40.0                                                   # px margin around the world for "inside"
 
@@ -285,6 +296,7 @@ def process_feed(fspec):
     rts = csv(d, "routes.txt"); trips = csv(d, "trips.txt"); stops = csv(d, "stops.txt")
     if fspec.get("agencies"): rts = rts[rts.agency_id.isin(fspec["agencies"])]      # use only some agencies from a mixed feed
     if fspec.get("route_types"): rts = rts[rts.route_type.isin(fspec["route_types"])]  # ...or only some raw route_type values
+    if fspec.get("type_map"): rts = rts.copy(); rts["route_type"] = rts.route_type.replace(fspec["type_map"])   # reclassify (e.g. a feed that marks metro as regional rail)
     date, on, counts = pick_date(d, trips)
     print(f"  [{label}] date {date} ({counts[0]} trips on first candidate, max {max(counts)})", flush=True)
     dates_used.append(date); feed_dates.append((fspec.get("name") or label, date))
@@ -369,6 +381,7 @@ def process_feed(fspec):
                     ins = np.flatnonzero((xy[:, 0] > -IN) & (xy[:, 0] < WPX + IN) & (xy[:, 1] > -IN) & (xy[:, 1] < HPX + IN))
                     if len(ins) >= 2: xy = xy[max(ins[0] - 1, 0): ins[-1] + 2]
                     if ROUTER is not None and cls == 0: xy = repair_hops(xy)
+                    elif cls >= 1 and CFG.get("rail_snap"): xy = repair_rail_hops(xy, rtype)
                     geo_cache[pkey[0]] = simp(xy, 0.15) if xy is not None else None
                 xy = geo_cache[pkey[0]]
                 if xy is None: pat_cache[pkey] = None; continue
@@ -395,7 +408,7 @@ def process_feed(fspec):
             arr = np.where(valid, arr, np.interp(dist, dist[valid], arr[valid]))
             dep = np.where(np.isnan(dep), arr, dep)
         if gk not in shape_idx:
-            shape_idx[gk] = len(shapes); shapes.append([cls, color, enc(xy)]); shape_meta[len(shapes) - 1] = cls
+            shape_idx[gk] = len(shapes); shapes.append([cls, color, None]); shape_meta[len(shapes) - 1] = cls; shape_xy[len(shapes) - 1] = xy
         elif cls > shapes[shape_idx[gk]][0]:
             shapes[shape_idx[gk]][0:2] = [cls, color]
         # (t, d) polyline: arrival and departure per stop, then thinned
@@ -420,8 +433,7 @@ def process_feed(fspec):
         dq = np.rint(dd * U).astype(np.int64)
         for off in offs:
             ts_i = np.rint(tt + off).astype(np.int64)
-            veh.extend([shape_idx[gk], route_idx[rk], head_idx[hs], len(T), len(ts_i)])
-            T.extend(np.diff(ts_i, prepend=0).tolist()); D.extend(np.diff(dq, prepend=0).tolist())
+            vrec.append((shape_idx[gk], route_idx[rk], head_idx[hs], ts_i, dq))
             made += 1
     print(f"  [{label}] vehicles made: {made} (trips outside extent skipped: {skipped}), {time.time() - t0:.0f}s", flush=True)
 
@@ -431,6 +443,57 @@ for fs in CFG["feeds"]:
     try: process_feed(fs)
     except Exception as e:
         import traceback; traceback.print_exc(); print("  feed failed:", fs["label"], flush=True)
+LANE_PX, CELL_PX, STEP_PX = 1.7, 5.0, 3.0
+
+def bundle_lanes():
+    """Metro/tram/rail lines that share a corridor are drawn side by side (one lane per colour), like a subway map.
+    Returns {shape index: (orig distance samples, new distance samples)} so vehicle positions can follow their lane."""
+    ids = [i for i in shape_xy if shapes[i][0] >= 1 and len(shape_xy[i]) >= 2]
+    if not ids: return {}
+    cols = {c: n for n, c in enumerate(sorted({shapes[i][1] for i in ids}))}
+    P, TG, CK, SH = [], [], [], []
+    samp = {}; tot = 0
+    for i in ids:
+        xy = shape_xy[i]; seg = np.hypot(*np.diff(xy, axis=0).T); cum = np.r_[0, np.cumsum(seg)]
+        if cum[-1] < 1e-6: continue
+        so = np.unique(np.r_[np.arange(0, cum[-1], STEP_PX), cum[-1]])
+        pts = np.column_stack([np.interp(so, cum, xy[:, 0]), np.interp(so, cum, xy[:, 1])])
+        d = np.gradient(pts, axis=0)
+        n_ = np.hypot(*d.T); n_[n_ == 0] = 1; d = d / n_[:, None]
+        flip = (d[:, 0] < 0) | ((d[:, 0] == 0) & (d[:, 1] < 0)); d[flip] *= -1          # canonical direction, so both travel directions share one normal
+        samp[i] = (so, tot, len(pts)); tot += len(pts); P.append(pts); TG.append(d); SH.append(np.full(len(pts), cols[shapes[i][1]]))
+    P, TG, CL = np.vstack(P), np.vstack(TG), np.concatenate(SH)
+    ang = np.arctan2(TG[:, 1], TG[:, 0]) % np.pi; binn = (ang / (np.pi / 8)).astype(np.int64) % 8
+    cx, cy = np.floor(P[:, 0] / CELL_PX).astype(np.int64) + 5, np.floor(P[:, 1] / CELL_PX).astype(np.int64) + 5
+    cell = (cx * 40000 + cy) * 8 + binn; pair = cell * 4096 + CL
+    up = np.unique(pair); ucell = up // 4096
+    _, first, inv, cnt = np.unique(ucell, return_index=True, return_inverse=True, return_counts=True)
+    rank_u = np.arange(len(up)) - first[inv]; n_u = cnt[inv]
+    ix = np.searchsorted(up, pair); rank, nn = rank_u[ix], n_u[ix]
+    off = (rank - (nn - 1) / 2.0) * LANE_PX
+    NM = np.column_stack([-TG[:, 1], TG[:, 0]])
+    maps, k0 = {}, 0
+    for i in ids:
+        if i not in samp: continue
+        so, st_, ln = samp[i]; sl = slice(st_, st_ + ln)
+        o = off[sl]
+        if np.any(o != 0):
+            w = 4; pad = np.pad(o, w, mode="edge"); o = np.convolve(pad, np.ones(2 * w + 1) / (2 * w + 1), mode="valid")   # ease lane changes
+        newp = P[sl] + o[:, None] * NM[sl]
+        sn = np.r_[0, np.cumsum(np.hypot(*np.diff(newp, axis=0).T))]
+        maps[i] = (so, sn); shapes[i][2] = enc(simp(newp, 0.1))
+    return maps
+
+lane_maps = bundle_lanes()
+for i in range(len(shapes)):                                # every other shape is encoded as-is
+    if shapes[i][2] is None: shapes[i][2] = enc(shape_xy[i])
+for si, ri, hi, ts_i, dq in vrec:
+    if si in lane_maps:
+        so, sn = lane_maps[si]; dq = np.rint(np.interp(dq / U, so, sn) * U).astype(np.int64)
+    veh.extend([si, ri, hi, len(T), len(ts_i)])
+    T.extend(np.diff(ts_i, prepend=0).tolist()); D.extend(np.diff(dq, prepend=0).tolist())
+print(f"  lanes applied to {len(lane_maps)} metro/rail shapes", flush=True)
+
 for k_, r_ in RAIL_ROUTERS.items():
     print("  rail router", k_, dict(r_.stats), flush=True)
     for a_, b_ in r_.failed[:12]: print("    unroutable", [round(c, 4) for c in to_ll(*r_.P[a_])], "->", [round(c, 4) for c in to_ll(*r_.P[b_])], "chord km %.1f" % (np.hypot(*(r_.P[a_] - r_.P[b_])) * MPP / 1000), flush=True)

@@ -56,6 +56,7 @@ for city, cfg in CFG.items():
         t = open_member(fs["path"], "trips.txt", fs.get("inner")); r = open_member(fs["path"], "routes.txt", fs.get("inner"))
         if len(bad) and t is not None and r is not None:
             tr = pd.read_csv(t, dtype=str, keep_default_na=False, usecols=lambda c: c in ("route_id", "shape_id")).drop_duplicates()
+            if "shape_id" not in tr: print(line + "   (trips have no shape_id)"); continue
             rt = pd.read_csv(r, dtype=str, keep_default_na=False)
             m = tr[tr.shape_id.isin(bad.index)].merge(rt[["route_id", "route_type", "route_short_name"]], on="route_id")
             line += f"   routes: {m.route_id.nunique()}  types {m.route_type.value_counts().to_dict()}  e.g. {list(m.route_short_name.unique()[:6])}"

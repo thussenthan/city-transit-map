@@ -12,7 +12,7 @@ from shapely.ops import unary_union
 
 ap = argparse.ArgumentParser()
 ap.add_argument("city"); ap.add_argument("--config", required=True); ap.add_argument("--work", required=True)
-ap.add_argument("--release", default="2026-09-23.1")
+ap.add_argument("--release", default="2026-09-23.1"); ap.add_argument("--graphs-only", action="store_true")
 a = ap.parse_args()
 cfg = json.load(open(a.config))[a.city]
 out_dir = os.path.join(a.work, a.city); os.makedirs(out_dir, exist_ok=True)
@@ -45,38 +45,39 @@ def ring_list(g):
         out += [np.round(np.array(i.coords), 6).tolist() for i in p.interiors if Polygon(i).area > 1e-9]
     return out
 
-print("water", flush=True)
-rows = q(f"SELECT ST_AsWKB(geometry) FROM read_parquet('{base}/theme=base/type=water/*', hive_partitioning=1) WHERE {where_box}")
-polys = []
-for (b,) in rows:
-    g = wkb.loads(bytes(b))
-    if g.geom_type in ("Polygon", "MultiPolygon"):
-        g = g.buffer(0).intersection(bbox)
-        if not g.is_empty: polys.append(g)
-water = ring_list(unary_union(polys)) if polys else []
+if not a.graphs_only:                          # --graphs-only: keep the existing base_raw.json, rebuild just the routing graphs
+    print("water", flush=True)
+    rows = q(f"SELECT ST_AsWKB(geometry) FROM read_parquet('{base}/theme=base/type=water/*', hive_partitioning=1) WHERE {where_box}")
+    polys = []
+    for (b,) in rows:
+        g = wkb.loads(bytes(b))
+        if g.geom_type in ("Polygon", "MultiPolygon"):
+            g = g.buffer(0).intersection(bbox)
+            if not g.is_empty: polys.append(g)
+    water = ring_list(unary_union(polys)) if polys else []
 
-print("parks", flush=True)
-rows = q(f"""SELECT ST_AsWKB(geometry) FROM read_parquet('{base}/theme=base/type=land_use/*', hive_partitioning=1)
-             WHERE {where_box} AND subtype IN ('park','recreation','protected','cemetery')""")
-parks = []
-for (b,) in rows:
-    g = wkb.loads(bytes(b))
-    if g.geom_type in ("Polygon", "MultiPolygon"):
-        g = g.buffer(0).intersection(bbox)
-        for p in (g.geoms if hasattr(g, "geoms") else [g]):
-            if p.geom_type == "Polygon" and p.area > 2e-8: parks.append(np.round(np.array(p.exterior.coords), 6).tolist())
+    print("parks", flush=True)
+    rows = q(f"""SELECT ST_AsWKB(geometry) FROM read_parquet('{base}/theme=base/type=land_use/*', hive_partitioning=1)
+                 WHERE {where_box} AND subtype IN ('park','recreation','protected','cemetery')""")
+    parks = []
+    for (b,) in rows:
+        g = wkb.loads(bytes(b))
+        if g.geom_type in ("Polygon", "MultiPolygon"):
+            g = g.buffer(0).intersection(bbox)
+            for p in (g.geoms if hasattr(g, "geoms") else [g]):
+                if p.geom_type == "Polygon" and p.area > 2e-8: parks.append(np.round(np.array(p.exterior.coords), 6).tolist())
 
-print("roads", flush=True)
-rows = q(f"""SELECT class, ST_AsWKB(geometry) FROM read_parquet('{base}/theme=transportation/type=segment/*', hive_partitioning=1)
-             WHERE {where_box} AND subtype = 'road' AND class IN ('motorway','trunk','primary','secondary','tertiary')""")
-roads = []
-RANK = {"motorway": 0, "trunk": 0, "primary": 1, "secondary": 1, "tertiary": 2}
-for cl, b in rows:
-    g = wkb.loads(bytes(b))
-    for ln in (g.geoms if hasattr(g, "geoms") else [g]):
-        if ln.geom_type == "LineString" and len(ln.coords) > 1:
-            roads.append([RANK[cl], np.round(np.array(ln.coords), 6).tolist()])
-json.dump({"water": water, "parks": parks, "roads": roads}, open(os.path.join(out_dir, "base_raw.json"), "w"))
+    print("roads", flush=True)
+    rows = q(f"""SELECT class, ST_AsWKB(geometry) FROM read_parquet('{base}/theme=transportation/type=segment/*', hive_partitioning=1)
+                 WHERE {where_box} AND subtype = 'road' AND class IN ('motorway','trunk','primary','secondary','tertiary')""")
+    roads = []
+    RANK = {"motorway": 0, "trunk": 0, "primary": 1, "secondary": 1, "tertiary": 2}
+    for cl, b in rows:
+        g = wkb.loads(bytes(b))
+        for ln in (g.geoms if hasattr(g, "geoms") else [g]):
+            if ln.geom_type == "LineString" and len(ln.coords) > 1:
+                roads.append([RANK[cl], np.round(np.array(ln.coords), 6).tolist()])
+    json.dump({"water": water, "parks": parks, "roads": roads}, open(os.path.join(out_dir, "base_raw.json"), "w"))
 
 if cfg.get("route_snap"):                      # drivable road graph, used by build_city.py to snap bus routes to roads
     print("routing graph", flush=True)
@@ -103,7 +104,6 @@ if cfg.get("route_snap"):                      # drivable road graph, used by bu
     np.savez_compressed(os.path.join(out_dir, "graph.npz"), node=node, u=u.astype(np.int32), v=v.astype(np.int32),
                         w=(np.hypot(dx, dy) * pw).astype(np.float32))
     print(f"  graph: {len(node)} nodes, {len(u)} edges", flush=True)
-print(f"DONE {a.city}: water rings {len(water)}, parks {len(parks)}, roads {len(roads)}", flush=True)
 
 
 if cfg.get("rail_snap"):                       # track geometry (all rail classes) for snapping coarse rail/metro/tram shapes
@@ -133,3 +133,4 @@ if cfg.get("rail_snap"):                       # track geometry (all rail classe
     np.savez_compressed(os.path.join(out_dir, "graph_rail.npz"), node=node, u=u.astype(np.int32), v=v.astype(np.int32),
                         w=np.hypot(dx, dy).astype(np.float32), c=ec, classes=np.array(classes))
     print(f"  rail graph: {len(node)} nodes, {len(u)} edges", flush=True)
+print(f"DONE {a.city}" + (" (graphs only)" if a.graphs_only else ""), flush=True)

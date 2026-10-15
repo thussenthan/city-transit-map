@@ -1,7 +1,7 @@
 {
  "tokyo": {
   "name": "Tokyo",
-  "sub": "JR, Metro, Toei & private railways",
+  "sub": "Shinkansen, JR, Metro, Toei, private railways & buses",
   "center": [
    139.74,
    35.68
@@ -15,13 +15,250 @@
    44
   ],
   "tz": "Asia/Tokyo",
-  "credit": "Tokyo rail GTFS (mkuran.pl, from ODPT & operators)",
+  "credit": "Tokyo rail GTFS (mkuran.pl, ODPT), JR timetables (jbb.ghsq.de), Toei Bus (MobilityData mirror), municipal buses (GTFS Data Repository Japan)",
   "feeds": [
    {
     "label": "rail",
+    "name": "Metro, Toei, JR & private railways",
     "path": "tokyo/rail.zip"
+   },
+   {
+    "label": "jr",
+    "name": "Shinkansen & limited express",
+    "path": "tokyo/jrclip",
+    "snap": "rail"
+   },
+   {
+    "label": "jrx",
+    "name": "Yurikamome, Disney Resort Line, Yokohama Subway",
+    "path": "tokyo/jrxclip",
+    "snap": "rail",
+    "type_map": {
+     "106": "1"
+    }
+   },
+   {
+    "label": "toeibus",
+    "name": "Toei Bus",
+    "path": "tokyo/jp-tokyo-toei-bus-gtfs-3175.zip"
+   },
+   {
+    "label": "c00",
+    "name": "Community buses",
+    "path": "tokyo/community/akishimacity__Abus.zip"
+   },
+   {
+    "label": "c01",
+    "name": "Community buses",
+    "path": "tokyo/community/arakawacity__sakura.zip"
+   },
+   {
+    "label": "c02",
+    "name": "Community buses",
+    "path": "tokyo/community/chigasakicity__eboshigou.zip"
+   },
+   {
+    "label": "c03",
+    "name": "Community buses",
+    "path": "tokyo/community/daishinto__Radiant-City.zip"
+   },
+   {
+    "label": "c04",
+    "name": "Community buses",
+    "path": "tokyo/community/hannocity__odekakemuma-haraichiba.zip"
+   },
+   {
+    "label": "c05",
+    "name": "Community buses",
+    "path": "tokyo/community/hannocity__odekakemuma-minamikoma.zip"
+   },
+   {
+    "label": "c06",
+    "name": "Community buses",
+    "path": "tokyo/community/hannocity__odekakemuma-seimei-kaji.zip"
+   },
+   {
+    "label": "c07",
+    "name": "Community buses",
+    "path": "tokyo/community/inzaicity__rosenbus.zip"
+   },
+   {
+    "label": "c08",
+    "name": "Community buses",
+    "path": "tokyo/community/katsushikacity__sakura.zip"
+   },
+   {
+    "label": "c09",
+    "name": "Community buses",
+    "path": "tokyo/community/keisei-transitbus__keiseitransitbus.zip"
+   },
+   {
+    "label": "c10",
+    "name": "Community buses",
+    "path": "tokyo/community/kimitsucity__Kimitsu_City_Community_Bus.zip"
+   },
+   {
+    "label": "c11",
+    "name": "Community buses",
+    "path": "tokyo/community/kimitsucity__Local_buses_via_Kimitsu_City.zip"
+   },
+   {
+    "label": "c12",
+    "name": "Community buses",
+    "path": "tokyo/community/kumagayacity__yuuyuubus.zip"
+   },
+   {
+    "label": "c13",
+    "name": "Community buses",
+    "path": "tokyo/community/kunitachicity__aoyagikko.zip"
+   },
+   {
+    "label": "c14",
+    "name": "Community buses",
+    "path": "tokyo/community/kunitachicity__kunikko.zip"
+   },
+   {
+    "label": "c15",
+    "name": "Community buses",
+    "path": "tokyo/community/matsudocity__matsudo.zip"
+   },
+   {
+    "label": "c16",
+    "name": "Community buses",
+    "path": "tokyo/community/matsudocity__matsudo-takatsuka.zip"
+   },
+   {
+    "label": "c17",
+    "name": "Community buses",
+    "path": "tokyo/community/mizuhotown__DemandResponsiveTransport.zip"
+   },
+   {
+    "label": "c18",
+    "name": "Community buses",
+    "path": "tokyo/community/mizuhotown__communitybus.zip"
+   },
+   {
+    "label": "c19",
+    "name": "Community buses",
+    "path": "tokyo/community/nagareyamacity__nagareyamagreenbus.zip"
+   },
+   {
+    "label": "c20",
+    "name": "Community buses",
+    "path": "tokyo/community/naritacity__narita-community-bus.zip"
+   },
+   {
+    "label": "c21",
+    "name": "Community buses",
+    "path": "tokyo/community/ninomiyatown__Ninomiyatowncommunitybus.zip"
+   },
+   {
+    "label": "c22",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__ajisaigou.zip"
+   },
+   {
+    "label": "c23",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__iwatsukikucommunitybus.zip"
+   },
+   {
+    "label": "c24",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__kawasemigou.zip"
+   },
+   {
+    "label": "c25",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__kitakucommunitybus.zip"
+   },
+   {
+    "label": "c26",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__minamikucommunitybus.zip"
+   },
+   {
+    "label": "c27",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__minumagou.zip"
+   },
+   {
+    "label": "c28",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__minumakucommunitybus.zip"
+   },
+   {
+    "label": "c29",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__miyaharanakayoshigou.zip"
+   },
+   {
+    "label": "c30",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__musashigou.zip"
+   },
+   {
+    "label": "c31",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__nisikucommunitybus.zip"
+   },
+   {
+    "label": "c32",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__orizurugou.zip"
+   },
+   {
+    "label": "c33",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__rainbowgou.zip"
+   },
+   {
+    "label": "c34",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__rakurakugou.zip"
+   },
+   {
+    "label": "c35",
+    "name": "Community buses",
+    "path": "tokyo/community/saitamacity__sakurakucommunitybus.zip"
+   },
+   {
+    "label": "c36",
+    "name": "Community buses",
+    "path": "tokyo/community/samukawatown__mokusei-go_eastroute.zip"
+   },
+   {
+    "label": "c37",
+    "name": "Community buses",
+    "path": "tokyo/community/samukawatown__mokusei-go_kuramiomuraroute.zip"
+   },
+   {
+    "label": "c38",
+    "name": "Community buses",
+    "path": "tokyo/community/samukawatown__mokusei-go_southroute.zip"
+   },
+   {
+    "label": "c39",
+    "name": "Community buses",
+    "path": "tokyo/community/tachikawacity__kururinbus.zip"
+   },
+   {
+    "label": "c40",
+    "name": "Community buses",
+    "path": "tokyo/community/wakocity__Wako-City-junkanbus.zip"
+   },
+   {
+    "label": "c41",
+    "name": "Community buses",
+    "path": "tokyo/community/yokosukacity__hamachanbus.zip"
+   },
+   {
+    "label": "c42",
+    "name": "Community buses",
+    "path": "tokyo/community/yotsukaidocity__yoppii.zip"
    }
-  ]
+  ],
+  "rail_snap": true
  },
  "hong-kong": {
   "name": "Hong Kong",
@@ -122,7 +359,8 @@
     "path": "paris/idfm.zip"
    }
   ],
-  "tz": "Europe/Paris"
+  "tz": "Europe/Paris",
+  "rail_snap": true
  },
  "seoul": {
   "name": "Seoul",
@@ -210,7 +448,8 @@
     "path": "nyc/njt_bus.zip"
    }
   ],
-  "tz": "America/New_York"
+  "tz": "America/New_York",
+  "rail_snap": true
  },
  "cairo": {
   "name": "Cairo",
@@ -240,7 +479,8 @@
     "name": "Buses",
     "path": "cairo/bus.zip"
    }
-  ]
+  ],
+  "rail_snap": true
  },
  "taipei": {
   "name": "Taipei",
@@ -264,7 +504,8 @@
     "label": "tw",
     "path": "taipei/clip"
    }
-  ]
+  ],
+  "rail_snap": true
  },
  "berlin": {
   "name": "Berlin",
@@ -288,7 +529,8 @@
     "path": "berlin/vbb.zip"
    }
   ],
-  "tz": "Europe/Berlin"
+  "tz": "Europe/Berlin",
+  "rail_snap": true
  },
  "vienna": {
   "name": "Vienna",
@@ -433,10 +675,12 @@
    },
    {
     "label": "metra",
-    "path": "chicago/metra.zip"
+    "path": "chicago/metra.zip",
+    "snap": "rail"
    }
   ],
-  "tz": "America/Chicago"
+  "tz": "America/Chicago",
+  "rail_snap": true
  },
  "helsinki": {
   "name": "Helsinki",
@@ -461,7 +705,8 @@
     "path": "helsinki/hsl.zip"
    }
   ],
-  "tz": "Europe/Helsinki"
+  "tz": "Europe/Helsinki",
+  "rail_snap": true
  },
  "los-angeles": {
   "name": "Los Angeles",
@@ -513,7 +758,8 @@
     "path": "boston/mbta.zip"
    }
   ],
-  "tz": "America/New_York"
+  "tz": "America/New_York",
+  "rail_snap": true
  },
  "philadelphia": {
   "name": "Philadelphia",
@@ -566,7 +812,8 @@
     "path": "amsterdam/nl.zip"
    }
   ],
-  "tz": "Europe/Amsterdam"
+  "tz": "Europe/Amsterdam",
+  "rail_snap": true
  },
  "san-francisco": {
   "name": "San Francisco",

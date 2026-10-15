@@ -106,8 +106,8 @@
   </div>
   <div class="row">
     <button class="chip" data-cls="1" aria-pressed="true"><i style="background:linear-gradient(90deg,#fff 0 33%,#bbb 33% 66%,#888 66%)"></i>Metro &amp; tram</button>
-    <button class="chip" data-cls="2" aria-pressed="true"><i style="background:#46e1c8"></i>Regional rail</button>
-    <button class="chip" data-cls="0" aria-pressed="true"><i style="background:#6096eb"></i>Bus</button>
+    <button class="chip" data-cls="2" aria-pressed="true"><i style="background:#a0f04c"></i>Regional rail</button>
+    <button class="chip" data-cls="0" aria-pressed="true"><i style="background:#987cff"></i>Bus</button>
   </div>
 </div>
 <button id="restore" aria-label="Show controls" title="Show controls (H)">Show</button>
@@ -294,8 +294,8 @@ function drawStatic() {
   c.fillStyle = "#0b0b0d"; c.fill(C.water, "evenodd");
   for (const g of C.groups) {
     if (!show[g.cls]) continue;
-    if (g.cls === 0) { c.strokeStyle = "rgba(96,150,235,.6)"; c.lineWidth = 1.1 * zf * px; }
-    else if (g.cls === 2) { c.strokeStyle = "rgba(70,225,200,.85)"; c.lineWidth = 1.7 * zf * px; }
+    if (g.cls === 0) { c.strokeStyle = "rgba(152,124,255,.58)"; c.lineWidth = 1.1 * zf * px; }
+    else if (g.cls === 2) { c.strokeStyle = "rgba(160,240,76,.85)"; c.lineWidth = 1.7 * zf * px; }
     else { c.strokeStyle = "#" + g.color; c.lineWidth = 2.1 * zf * px; }
     c.stroke(g.path);
   }
@@ -400,7 +400,7 @@ const tip = $("tip");
 function updateTip() {
   const k = C && selected >= 0 && C.live[selected] ? selected : hover;
   if (!C || k < 0 || !C.live[k]) { tip.style.display = "none"; return; }
-  const v = C.vs[k], r = C.routes[v.route], hd = C.heads[v.head], col = v.shape.cls === 0 ? "#4a78c8" : v.shape.cls === 2 ? "#1c9c88" : "#" + v.shape.color;
+  const v = C.vs[k], r = C.routes[v.route], hd = C.heads[v.head], col = v.shape.cls === 0 ? "#6a4fd8" : v.shape.cls === 2 ? "#5d9a1f" : "#" + v.shape.color;
   const kind = ["Bus", "Metro / tram", "Regional rail"][v.shape.cls];
   const txt = c => c.replace(/[&<>]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
   const dark = v.shape.cls === 1 && parseInt(v.shape.color, 16) > 0xb0b0b0;

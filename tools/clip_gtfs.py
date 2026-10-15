@@ -12,6 +12,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("zip"); ap.add_argument("city"); ap.add_argument("--config", required=True); ap.add_argument("--out", required=True)
 ap.add_argument("--rail-only", action="store_true", help="keep only route_type 0,1,2 (+ extended rail/metro/tram codes)")
 ap.add_argument("--types", help="comma-separated raw route_type values to keep (overrides --rail-only)")
+ap.add_argument("--agencies", help="comma-separated agency_id values to keep")
 a = ap.parse_args()
 cfg = json.load(open(a.config))[a.city]
 os.makedirs(a.out, exist_ok=True)
@@ -40,6 +41,7 @@ def chunks(name, n=1_000_000, **kw): return pd.read_csv(z.open(names[name]), dty
 routes = rd("routes.txt")
 if a.types: routes = routes[routes.route_type.isin(a.types.split(","))]
 elif a.rail_only: routes = routes[routes.route_type.map(rail_type)]
+if a.agencies: routes = routes[routes.agency_id.isin(a.agencies.split(","))]
 print("routes kept", len(routes), routes.route_type.value_counts().to_dict())
 stops = rd("stops.txt")
 lon, lat = pd.to_numeric(stops.stop_lon, errors="coerce"), pd.to_numeric(stops.stop_lat, errors="coerce")
