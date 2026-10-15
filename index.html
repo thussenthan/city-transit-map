@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Transit in Motion</title>
+<title>City Transit Map</title>
 <meta name="description" content="Every scheduled bus, train and tram in a city, animated from the open GTFS timetable.">
 <style>
   :root { --bg:#1e1e21; --fg:#fff; --dim:rgba(255,255,255,.62); --faint:rgba(255,255,255,.4);
@@ -155,7 +155,7 @@ async function select(id, replace) {
   const token = ++loadToken;
   document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.id === id));
   if (replace) history.replaceState(null, "", "#" + id); else location.hash = id;
-  document.title = m.name + " · Transit in Motion";
+  document.title = m.name + " · City Transit Map";
   $("cname").textContent = m.name; $("csub").textContent = m.sub; $("cdate").textContent = "";
   $("credit").textContent = m.credit ? "data: " + m.credit : "open GTFS timetables";
   const ready = cache.has(id) && C && C.id === id;

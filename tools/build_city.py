@@ -1,4 +1,4 @@
-"""Build one city's data file for the transit-in-motion page.
+"""Build one city's data file for the City Transit Map page.
 
     python3 -I tools/build_city.py CITY --config tools/cities.json --feeds FEEDS_DIR --work WORK_DIR --out data
 

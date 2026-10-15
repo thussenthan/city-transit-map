@@ -1,9 +1,9 @@
-# Transit in Motion
+# City Transit Map
 
 Every scheduled bus, train and tram in a city, animated from its open GTFS timetable. One page, one tab per city:
 **Philadelphia, New York, Boston, Chicago, Los Angeles, San Francisco, San Diego, Portland, Minneapolis, Atlanta, Miami, Toronto, London, Paris, Berlin, Vienna, Amsterdam, Helsinki, Hong Kong, Melbourne.**
 
-Live: <https://thussenthan.github.io/transit-in-motion/>
+Live: <https://thussenthan.github.io/city-transit-map/>
 
 Pan and zoom, scrub or play through the service day (starts at 08:00), filter by mode, and hover or click any dot for its route. Deep links work (`#paris`). Keys: `space` play/pause, `[` `]` previous/next city.
 
